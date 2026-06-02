@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Specialty {
+  ONCOLOGY_COLORECTAL
+  OPHTHALMOLOGY
+  GASTROENTEROLOGY
+  UROLOGY
+  NEPHROLOGY
+}
+
+enum StudyType {
+  BASIC
+  CLINICAL
+}
+
+enum ArticleSource {
+  PUBMED
+  EUROPE_PMC
+  CROSSREF
+  SEED
+}
+
+model Article {
+  id              String        @id @default(cuid())
+  titleEn         String        @map("title_en")
+  titleCn         String?       @map("title_cn")
+  abstract        String?       @db.Text
+  abstractCn      String?       @map("abstract_cn") @db.Text
+  journal         String
+  impactFactor    Float         @map("impact_factor")
+  doi             String?       @unique
+  pmid            String?       @unique
+  authors         String[]      @default([])
+  publishDate     DateTime      @map("publish_date")
+  specialty       Specialty
+  studyType       StudyType     @map("study_type")
+  keywords        String[]      @default([])
+  keywordsBilingual Json?       @map("keywords_bilingual")
+  articleType     String?       @map("article_type")
+  aiSummary       String?       @map("ai_summary")
+  aiAnalysisJson  Json?         @map("ai_analysis_json")
+  isLandmark      Boolean       @default(false) @map("is_landmark")
+  isTodayPick     Boolean       @default(false) @map("is_today_pick")
+  /** 北京时间日期键 YYYY-MM-DD，标记为当日首页推荐 */
+  featuredDateKey String?       @map("featured_date_key")
+  isInHistory     Boolean       @default(false) @map("is_in_history")
+  archivedAt      DateTime?     @map("archived_at")
+  isCoreLibrary   Boolean       @default(false) @map("is_core_library")
+  coreAddedAt     DateTime?     @map("core_added_at")
+  source          ArticleSource @default(PUBMED)
+  externalUrl     String?       @map("external_url")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  favorites Favorite[]
+
+  @@index([specialty, publishDate])
+  @@index([impactFactor])
+  @@index([isTodayPick])
+  @@index([featuredDateKey])
+  @@index([isInHistory, specialty])
+  @@index([isCoreLibrary, specialty])
+  @@index([studyType])
+  @@map("articles")
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String?
+  createdAt    DateTime       @default(now()) @map("created_at")
+  favorites    Favorite[]
+  subscriptions Subscription[]
+
+  @@map("users")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  articleId String   @map("article_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@map("favorites")
+}
+
+model Subscription {
+  id         String      @id @default(cuid())
+  userId     String      @map("user_id")
+  specialty  Specialty?
+  email      String
+  active     Boolean     @default(true)
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model FetchLog {
+  id          String   @id @default(cuid())
+  runAt       DateTime @default(now()) @map("run_at")
+  specialty   Specialty?
+  fetched     Int      @default(0)
+  accepted    Int      @default(0)
+  fallback    Int      @default(0)
+  errors      String?  @db.Text
+  durationMs  Int      @map("duration_ms")
+
+  @@map("fetch_logs")
+}
+
+model JournalIf {
+  id            String  @id @default(cuid())
+  journalName   String  @unique @map("journal_name")
+  issn          String?
+  impactFactor  Float   @map("impact_factor")
+  tier          Int     @default(1)
+  isTopJournal  Boolean @default(false) @map("is_top_journal")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("journal_ifs")
+}
