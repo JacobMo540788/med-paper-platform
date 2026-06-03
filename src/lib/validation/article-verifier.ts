@@ -86,8 +86,14 @@ function journalsMatch(inputJournal: string, sourceJournal: string): boolean {
   return a.length > 0 && b.length > 0 && (a.includes(b) || b.includes(a) || tokenSimilarity(a, b) >= 0.55);
 }
 
-function normalizeDoi(doi?: string | null): string | undefined {
-  return doi?.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, "").toLowerCase() || undefined;
+function normalizeTextId(value?: string | number | null): string | undefined {
+  if (value == null) return undefined;
+  const text = String(value).trim();
+  return text || undefined;
+}
+
+function normalizeDoi(doi?: string | number | null): string | undefined {
+  return normalizeTextId(doi)?.replace(/^https?:\/\/(dx\.)?doi\.org\//i, "").toLowerCase();
 }
 
 function parseDate(value?: string): Date | undefined {
@@ -109,7 +115,7 @@ async function fetchPubMedByPmid(pmid: string): Promise<PubMedDoc | null> {
 }
 
 async function verifyWithPubMed(input: ArticleVerificationInput): Promise<ArticleVerificationResult> {
-  const pmid = input.pmid?.trim();
+  const pmid = normalizeTextId(input.pmid);
   if (!pmid) return { ok: false, error: "Missing PMID." };
 
   const doc = await fetchPubMedByPmid(pmid);
@@ -180,7 +186,7 @@ async function verifyWithCrossRef(input: ArticleVerificationInput): Promise<Arti
       titleEn: sourceTitle,
       journal: sourceJournal || input.journal,
       doi: normalizeDoi(work.DOI) ?? doi,
-      pmid: input.pmid?.trim() || undefined,
+      pmid: normalizeTextId(input.pmid),
       publishDate,
       abstract: work.abstract?.replace(/<[^>]+>/g, "") ?? input.abstract ?? undefined,
       authors: parseCrossrefAuthors(work.author),
