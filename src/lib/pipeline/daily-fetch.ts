@@ -12,6 +12,7 @@ import type { RawPaper } from "../types";
 import { upsertArticleRecord } from "./article-upsert";
 
 const ALL_SPECIALTIES = Object.keys(SPECIALTY_CONFIG) as Specialty[];
+const ONCOLOGY_REVIEW_FALLBACK_SPECIALTY: Specialty = "ONCOLOGY_COLORECTAL";
 
 function dedupePapers(papers: RawPaper[]): RawPaper[] {
   const seen = new Set<string>();
@@ -84,6 +85,30 @@ async function fetchAndStoreForSpecialty(
   return { fetched: merged.length, accepted, failed };
 }
 
+async function promoteOncologyReviewFallback(todayKey: string): Promise<number> {
+  const article = await prisma.article.findFirst({
+    where: {
+      specialty: ONCOLOGY_REVIEW_FALLBACK_SPECIALTY,
+      isCoreLibrary: true,
+      verificationStatus: "VERIFIED",
+      featuredDateKey: null,
+    },
+    orderBy: [{ impactFactor: "desc" }, { publishDate: "desc" }],
+  });
+
+  if (!article) return 0;
+
+  await prisma.article.update({
+    where: { id: article.id },
+    data: {
+      isTodayPick: true,
+      featuredDateKey: todayKey,
+    },
+  });
+
+  return 1;
+}
+
 export async function runDailyFetchPipeline(): Promise<{
   totalFetched: number;
   totalAccepted: number;
@@ -97,6 +122,7 @@ export async function runDailyFetchPipeline(): Promise<{
   const todayKey = getBeijingDateKey();
   let totalFetched = 0;
   let totalAccepted = 0;
+  let totalFallback = 0;
   let totalFailed = 0;
   const errors: string[] = [];
 
@@ -125,6 +151,24 @@ export async function runDailyFetchPipeline(): Promise<{
     }
   }
 
+  if (totalAccepted === 0) {
+    totalFallback = await promoteOncologyReviewFallback(todayKey);
+    if (totalFallback) totalAccepted += totalFallback;
+
+    await prisma.fetchLog.create({
+      data: {
+        specialty: ONCOLOGY_REVIEW_FALLBACK_SPECIALTY,
+        fetched: 0,
+        accepted: totalFallback,
+        fallback: totalFallback,
+        errors: totalFallback
+          ? "No eligible daily articles found. Promoted one verified oncology core review as today's homepage pick."
+          : "No eligible daily articles found and no unused verified oncology core review was available.",
+        durationMs: 0,
+      },
+    });
+  }
+
   await cacheDel("cache:*");
 
   const durationMs = Date.now() - start;
@@ -133,7 +177,7 @@ export async function runDailyFetchPipeline(): Promise<{
       data: {
         fetched: totalFetched,
         accepted: totalAccepted,
-        fallback: 0,
+        fallback: totalFallback,
         durationMs,
         errors: errors.join("\n"),
       },
@@ -143,7 +187,7 @@ export async function runDailyFetchPipeline(): Promise<{
   return {
     totalFetched,
     totalAccepted,
-    totalFallback: 0,
+    totalFallback,
     totalFailed,
     archived,
     beijingDateKey: todayKey,
