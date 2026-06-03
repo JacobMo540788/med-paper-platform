@@ -25,53 +25,64 @@ function specialtyFromParam(value: string | null): Specialty | null {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  }
-
-  const specialty = specialtyFromParam(req.nextUrl.searchParams.get("specialty"));
-  if (!specialty) {
-    return NextResponse.json(
-      { success: false, error: "Missing or invalid specialty." },
-      { status: 400 }
-    );
-  }
-
-  const candidates = await fetchPubMedReviewLibrary(specialty, 10, 120);
-  let accepted = 0;
-  let rejected = 0;
-  let belowIf = 0;
-
-  for (const paper of candidates) {
-    const impactFactor = await resolveImpactFactor(paper.journal);
-    if (impactFactor < 15) {
-      belowIf++;
-      continue;
+  try {
+    if (!isAuthorized(req)) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const withReviewType = {
-      ...paper,
-      articleType: paper.articleType ? `${paper.articleType}; Review` : "Review",
-    };
-    const articleId = await upsertArticleRecord(
-      withReviewType,
-      impactFactor,
-      classifyStudyType(withReviewType),
-      { asCoreLibrary: true, runLlm: false }
+    const specialty = specialtyFromParam(req.nextUrl.searchParams.get("specialty"));
+    if (!specialty) {
+      return NextResponse.json(
+        { success: false, error: "Missing or invalid specialty." },
+        { status: 400 }
+      );
+    }
+
+    const candidates = await fetchPubMedReviewLibrary(specialty, 10, 120);
+    let accepted = 0;
+    let rejected = 0;
+    let belowIf = 0;
+
+    for (const paper of candidates) {
+      const impactFactor = await resolveImpactFactor(paper.journal);
+      if (impactFactor < 15) {
+        belowIf++;
+        continue;
+      }
+
+      const withReviewType = {
+        ...paper,
+        articleType: paper.articleType ? `${paper.articleType}; Review` : "Review",
+      };
+      const articleId = await upsertArticleRecord(
+        withReviewType,
+        impactFactor,
+        classifyStudyType(withReviewType),
+        { asCoreLibrary: true, runLlm: false }
+      );
+
+      if (articleId) accepted++;
+      else rejected++;
+    }
+
+    return NextResponse.json({
+      success: true,
+      specialty,
+      fetched: candidates.length,
+      accepted,
+      rejected,
+      belowIf,
+    });
+  } catch (e) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        stack: e instanceof Error ? e.stack : undefined,
+      },
+      { status: 500 }
     );
-
-    if (articleId) accepted++;
-    else rejected++;
   }
-
-  return NextResponse.json({
-    success: true,
-    specialty,
-    fetched: candidates.length,
-    accepted,
-    rejected,
-    belowIf,
-  });
 }
 
 export async function GET(req: NextRequest) {
