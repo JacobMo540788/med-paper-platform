@@ -20,6 +20,7 @@
   { "journalName": "Gastroenterology", "issn": "0016-5085", "impactFactor": 29.4, "isTopJournal": false },
   { "journalName": "Journal of Clinical Oncology", "issn": "0732-183X", "impactFactor": 45.3, "isTopJournal": false },
   { "journalName": "Annals of Oncology", "issn": "0923-7534", "impactFactor": 51.8, "isTopJournal": false },
+  { "journalName": "Medicine", "issn": "0025-7974", "impactFactor": 1.4, "isTopJournal": false },
   { "journalName": "Ophthalmology", "issn": "0161-6420", "impactFactor": 13.7, "isTopJournal": false },
   { "journalName": "Progress in Retinal and Eye Research", "issn": "1350-9462", "impactFactor": 17.8, "isTopJournal": false },
   { "journalName": "European Urology", "issn": "0302-2838", "impactFactor": 25.2, "isTopJournal": false },

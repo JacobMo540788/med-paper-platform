@@ -10,9 +10,16 @@ export interface JournalRecord {
 }
 
 const localMap = new Map<string, JournalRecord>();
+const JOURNAL_ALIASES: Record<string, string> = {
+  "n engl j med": "new england journal of medicine",
+  "the new england journal of medicine": "new england journal of medicine",
+  "new engl j med": "new england journal of medicine",
+  "the lancet": "lancet",
+};
 
 function normalizeJournalName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ");
+  const normalized = name.trim().toLowerCase().replace(/[.:,;]+$/g, "").replace(/\s+/g, " ");
+  return JOURNAL_ALIASES[normalized] ?? normalized;
 }
 
 function loadLocal(): void {
@@ -24,7 +31,7 @@ function loadLocal(): void {
 
 export function isTopJournalName(journal: string): boolean {
   const n = normalizeJournalName(journal);
-  return TOP_JOURNAL_KEYWORDS.some((k) => n.includes(k));
+  return TOP_JOURNAL_KEYWORDS.some((k) => n === normalizeJournalName(k));
 }
 
 /**
@@ -37,19 +44,12 @@ export async function resolveImpactFactor(journal: string): Promise<number> {
 
   const dbHit = await prisma.journalIf.findFirst({
     where: {
-      OR: [
-        { journalName: { equals: journal, mode: "insensitive" } },
-        { journalName: { contains: journal.split(" ")[0] ?? journal, mode: "insensitive" } },
-      ],
+      journalName: { equals: norm, mode: "insensitive" },
     },
   });
   if (dbHit) return dbHit.impactFactor;
 
   if (localMap.has(norm)) return localMap.get(norm)!.impactFactor;
-
-  for (const [key, rec] of localMap) {
-    if (norm.includes(key) || key.includes(norm)) return rec.impactFactor;
-  }
 
   if (isTopJournalName(journal)) return 20;
   return 0;
