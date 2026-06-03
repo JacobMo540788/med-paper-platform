@@ -2,7 +2,7 @@ import type { Specialty, StudyType } from "@prisma/client";
 
 export const MIN_IMPACT_FACTOR = 15;
 /** 核心文献库收录门槛 */
-export const CORE_MIN_IMPACT_FACTOR = 60;
+export const CORE_MIN_IMPACT_FACTOR = 15;
 /** 核心文献库回溯年数 */
 export const CORE_LIBRARY_YEARS = 15;
 /** 每日首页更新：北京时间 07:00 */

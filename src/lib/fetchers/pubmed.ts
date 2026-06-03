@@ -75,6 +75,29 @@ export async function fetchPubMedCoreLibrary(
   return fetchPubMedDetails(ids, specialty);
 }
 
+export async function fetchPubMedReviewLibrary(
+  specialty: Specialty,
+  years = 10,
+  maxResults = 160
+): Promise<RawPaper[]> {
+  const cfg = SPECIALTY_CONFIG[specialty];
+  const startYear = new Date().getFullYear() - years;
+  const dateFilter = `("${startYear}/01/01"[PDAT] : "3000"[PDAT])`;
+  const reviewFilter = '(Review[Publication Type] OR systematic review[Title/Abstract] OR meta-analysis[Publication Type])';
+  const term = `(${cfg.pubmedQuery}) AND ${reviewFilter} AND ${dateFilter} AND (english[Language])`;
+
+  const searchUrl =
+    `${BASE}/esearch.fcgi?db=pubmed&retmode=json&retmax=${maxResults}` +
+    `&sort=relevance&term=${encodeURIComponent(term)}${apiKeyParam()}`;
+
+  const search = await fetchJson<{ esearchresult?: { idlist?: string[] } }>(searchUrl);
+  const ids = search.esearchresult?.idlist ?? [];
+  if (ids.length === 0) return [];
+
+  await sleep(350);
+  return fetchPubMedDetails(ids, specialty);
+}
+
 async function fetchPubMedDetails(ids: string[], specialty: Specialty): Promise<RawPaper[]> {
   const fetchUrl =
     `${BASE}/efetch.fcgi?db=pubmed&retmode=xml&id=${ids.join(",")}${apiKeyParam()}`;

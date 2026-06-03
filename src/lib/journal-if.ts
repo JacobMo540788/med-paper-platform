@@ -82,5 +82,5 @@ export function passesIfFilter(impactFactor: number): boolean {
 }
 
 export function passesCoreIfFilter(impactFactor: number): boolean {
-  return impactFactor > 60;
+  return impactFactor >= 15;
 }
