@@ -1,30 +1,500 @@
 [
-  { "journalName": "Nature", "issn": "0028-0836", "impactFactor": 64.8, "isTopJournal": true },
-  { "journalName": "Science", "issn": "0036-8075", "impactFactor": 56.9, "isTopJournal": true },
-  { "journalName": "Cell", "issn": "0092-8674", "impactFactor": 64.5, "isTopJournal": true },
-  { "journalName": "New England Journal of Medicine", "issn": "0028-4793", "impactFactor": 176.0, "isTopJournal": true },
-  { "journalName": "NEJM", "issn": "0028-4793", "impactFactor": 176.0, "isTopJournal": true },
-  { "journalName": "The Lancet", "issn": "0140-6736", "impactFactor": 168.9, "isTopJournal": true },
-  { "journalName": "Lancet", "issn": "0140-6736", "impactFactor": 168.9, "isTopJournal": true },
-  { "journalName": "JAMA", "issn": "0098-7484", "impactFactor": 120.7, "isTopJournal": true },
-  { "journalName": "BMJ", "issn": "0959-8138", "impactFactor": 105.7, "isTopJournal": true },
-  { "journalName": "Nature Medicine", "issn": "1078-8956", "impactFactor": 82.9, "isTopJournal": true },
-  { "journalName": "Nature Cancer", "issn": "2662-1347", "impactFactor": 38.0, "isTopJournal": true },
-  { "journalName": "Nature Biotechnology", "issn": "1087-0156", "impactFactor": 46.9, "isTopJournal": true },
-  { "journalName": "Nature Genetics", "issn": "1061-4036", "impactFactor": 41.4, "isTopJournal": true },
-  { "journalName": "Nature Communications", "issn": "2041-1723", "impactFactor": 16.6, "isTopJournal": true },
-  { "journalName": "Science Translational Medicine", "issn": "1946-6234", "impactFactor": 17.1, "isTopJournal": true },
-  { "journalName": "Cell Metabolism", "issn": "1550-4131", "impactFactor": 29.0, "isTopJournal": true },
-  { "journalName": "Cancer Cell", "issn": "1535-6108", "impactFactor": 48.8, "isTopJournal": true },
-  { "journalName": "Gut", "issn": "0017-5749", "impactFactor": 31.7, "isTopJournal": false },
-  { "journalName": "Gastroenterology", "issn": "0016-5085", "impactFactor": 29.4, "isTopJournal": false },
-  { "journalName": "Journal of Clinical Oncology", "issn": "0732-183X", "impactFactor": 45.3, "isTopJournal": false },
-  { "journalName": "Annals of Oncology", "issn": "0923-7534", "impactFactor": 51.8, "isTopJournal": false },
-  { "journalName": "Medicine", "issn": "0025-7974", "impactFactor": 1.4, "isTopJournal": false },
-  { "journalName": "Ophthalmology", "issn": "0161-6420", "impactFactor": 13.7, "isTopJournal": false },
-  { "journalName": "Progress in Retinal and Eye Research", "issn": "1350-9462", "impactFactor": 17.8, "isTopJournal": false },
-  { "journalName": "European Urology", "issn": "0302-2838", "impactFactor": 25.2, "isTopJournal": false },
-  { "journalName": "Journal of Urology", "issn": "0022-5347", "impactFactor": 7.6, "isTopJournal": false },
-  { "journalName": "Kidney International", "issn": "0085-2538", "impactFactor": 19.6, "isTopJournal": false },
-  { "journalName": "Journal of the American Society of Nephrology", "issn": "1046-6673", "impactFactor": 19.4, "isTopJournal": false }
+  {
+    "journalName": "Nature",
+    "issn": "0028-0836",
+    "impactFactor": 64.8,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Science",
+    "issn": "0036-8075",
+    "impactFactor": 56.9,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Cell",
+    "issn": "0092-8674",
+    "impactFactor": 64.5,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "New England Journal of Medicine",
+    "issn": "0028-4793",
+    "impactFactor": 78.5,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "NEJM",
+    "issn": "0028-4793",
+    "impactFactor": 78.5,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "The Lancet",
+    "issn": "0140-6736",
+    "impactFactor": 168.9,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Lancet",
+    "issn": "0140-6736",
+    "impactFactor": 168.9,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "JAMA",
+    "issn": "0098-7484",
+    "impactFactor": 120.7,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "BMJ",
+    "issn": "0959-8138",
+    "impactFactor": 105.7,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Nature Medicine",
+    "issn": "1078-8956",
+    "impactFactor": 82.9,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Nature Cancer",
+    "issn": "2662-1347",
+    "impactFactor": 38,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Nature Biotechnology",
+    "issn": "1087-0156",
+    "impactFactor": 46.9,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Nature Genetics",
+    "issn": "1061-4036",
+    "impactFactor": 41.4,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Nature communications",
+    "issn": "2041-1723",
+    "impactFactor": 15.7,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Science Translational Medicine",
+    "issn": "1946-6234",
+    "impactFactor": 17.1,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Cell Metabolism",
+    "issn": "1550-4131",
+    "impactFactor": 29,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Cancer Cell",
+    "issn": "1535-6108",
+    "impactFactor": 48.8,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Gut",
+    "issn": "0017-5749",
+    "impactFactor": 25.8,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Gastroenterology",
+    "issn": "0016-5085",
+    "impactFactor": 25.1,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Journal of Clinical Oncology",
+    "issn": "0732-183X",
+    "impactFactor": 45.3,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Annals of Oncology",
+    "issn": "0923-7534",
+    "impactFactor": 51.8,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Medicine",
+    "issn": "0025-7974",
+    "impactFactor": 1.4,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Ophthalmology",
+    "issn": "0161-6420",
+    "impactFactor": 13.7,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Progress in retinal and eye research",
+    "issn": "1350-9462",
+    "impactFactor": 14.7,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "European urology",
+    "issn": "0302-2838",
+    "impactFactor": 25.2,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Journal of Urology",
+    "issn": "0022-5347",
+    "impactFactor": 7.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Kidney international",
+    "issn": "0085-2538",
+    "impactFactor": 12.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Journal of the American Society of Nephrology",
+    "issn": "1046-6673",
+    "impactFactor": 19.4,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "BMC gastroenterology",
+    "issn": "1471-230X",
+    "impactFactor": 2.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "BMJ open",
+    "issn": "2044-6055",
+    "impactFactor": 2.3,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "BMJ supportive & palliative care",
+    "issn": "2045-435X",
+    "impactFactor": 1.8,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Bioscience reports",
+    "issn": "0144-8463",
+    "impactFactor": 4.7,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Cancer",
+    "issn": "0008-543X",
+    "impactFactor": 5.1,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Cancer science",
+    "issn": "1347-9032",
+    "impactFactor": 4.3,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Cell death & disease",
+    "issn": "2041-4889",
+    "impactFactor": 9.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Cell reports",
+    "issn": "2211-1247",
+    "impactFactor": 6.9,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Cells",
+    "issn": "2073-4409",
+    "impactFactor": 5.2,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Clinical gastroenterology and hepatology : the official clinical practice journal of the American Gastroenterological Association",
+    "issn": "1542-3565",
+    "impactFactor": 12,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Clinical Gastroenterology and Hepatology",
+    "issn": "1542-3565",
+    "impactFactor": 12,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Clinical journal of the American Society of Nephrology : CJASN",
+    "issn": "1555-9041",
+    "impactFactor": 7.1,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Clinical Journal of the American Society of Nephrology",
+    "issn": "1555-9041",
+    "impactFactor": 7.1,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Clinics and research in hepatology and gastroenterology",
+    "issn": "2210-7401",
+    "impactFactor": 2.4,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Current gastroenterology reports",
+    "issn": "1522-8037",
+    "impactFactor": 0,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Digestive diseases and sciences",
+    "issn": "0163-2116",
+    "impactFactor": 2.5,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Ethiopian journal of health sciences",
+    "issn": "1029-1857",
+    "impactFactor": 1.5,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "European journal of gastroenterology & hepatology",
+    "issn": "0954-691X",
+    "impactFactor": 1.8,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "European urology focus",
+    "issn": "2405-4569",
+    "impactFactor": 5.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "European urology oncology",
+    "issn": "2588-9311",
+    "impactFactor": 9.3,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Indian journal of gastroenterology : official journal of the Indian Society of Gastroenterology",
+    "issn": "0254-8860",
+    "impactFactor": 2.1,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Indian journal of gastroenterology",
+    "issn": "0254-8860",
+    "impactFactor": 2.1,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "International journal of biological sciences",
+    "issn": "1449-2288",
+    "impactFactor": 10,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "International journal of clinical oncology",
+    "issn": "1341-9625",
+    "impactFactor": 2.8,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "International journal of molecular sciences",
+    "issn": "1422-0067",
+    "impactFactor": 4.9,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Investigative ophthalmology & visual science",
+    "issn": "0146-0404",
+    "impactFactor": 4.7,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "JAMA dermatology",
+    "issn": "2168-6068",
+    "impactFactor": 11,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "JAMA ophthalmology",
+    "issn": "2168-6165",
+    "impactFactor": 9.2,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Journal of clinical gastroenterology",
+    "issn": "0192-0790",
+    "impactFactor": 2.7,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Journal of gastroenterology and hepatology",
+    "issn": "0815-9319",
+    "impactFactor": 3.4,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Journal of pediatric gastroenterology and nutrition",
+    "issn": "0277-2116",
+    "impactFactor": 2.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Lancet (London, England)",
+    "issn": "0140-6736",
+    "impactFactor": 88.5,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Lasers in medical science",
+    "issn": "0268-8921",
+    "impactFactor": 2.4,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "NEJM evidence",
+    "issn": "2766-5526",
+    "impactFactor": 0,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Nature immunology",
+    "issn": "1529-2908",
+    "impactFactor": 27.6,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Nature reviews. Gastroenterology & hepatology",
+    "issn": "1759-5045",
+    "impactFactor": 51,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Nature Reviews Gastroenterology & Hepatology",
+    "issn": "1759-5045",
+    "impactFactor": 51,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Nature reviews. Nephrology",
+    "issn": "1759-5061",
+    "impactFactor": 39.8,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Nature Reviews Nephrology",
+    "issn": "1759-5061",
+    "impactFactor": 39.8,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Scandinavian journal of gastroenterology",
+    "issn": "0036-5521",
+    "impactFactor": 1.7,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Science China. Life sciences",
+    "issn": "1674-7305",
+    "impactFactor": 9.5,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Science China-Life Sciences",
+    "issn": "1674-7305",
+    "impactFactor": 9.5,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Social science & medicine (1982)",
+    "issn": "0277-9536",
+    "impactFactor": 5,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Social Science & Medicine",
+    "issn": "0277-9536",
+    "impactFactor": 5,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "The American journal of gastroenterology",
+    "issn": "0002-9270",
+    "impactFactor": 7.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "American journal of gastroenterology",
+    "issn": "0002-9270",
+    "impactFactor": 7.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "The Lancet. Global health",
+    "issn": "2214-109X",
+    "impactFactor": 18,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "The Lancet Global Health",
+    "issn": "2214-109X",
+    "impactFactor": 18,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "The New England journal of medicine",
+    "issn": "0028-4793",
+    "impactFactor": 78.5,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "The Turkish journal of gastroenterology : the official journal of Turkish Society of Gastroenterology",
+    "issn": "1300-4948",
+    "impactFactor": 1.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "Turkish Journal of Gastroenterology",
+    "issn": "1300-4948",
+    "impactFactor": 1.6,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "The lancet. Gastroenterology & hepatology",
+    "issn": "2468-1253",
+    "impactFactor": 38.6,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "The Lancet Gastroenterology & Hepatology",
+    "issn": "2468-1253",
+    "impactFactor": 38.6,
+    "isTopJournal": true
+  },
+  {
+    "journalName": "Urology",
+    "issn": "0090-4295",
+    "impactFactor": 2,
+    "isTopJournal": false
+  },
+  {
+    "journalName": "World journal of gastroenterology",
+    "issn": "1007-9327",
+    "impactFactor": 5.4,
+    "isTopJournal": false
+  }
 ]

@@ -42,14 +42,14 @@ export async function resolveImpactFactor(journal: string): Promise<number> {
   loadLocal();
   const norm = normalizeJournalName(journal);
 
+  if (localMap.has(norm)) return localMap.get(norm)!.impactFactor;
+
   const dbHit = await prisma.journalIf.findFirst({
     where: {
       journalName: { equals: norm, mode: "insensitive" },
     },
   });
   if (dbHit) return dbHit.impactFactor;
-
-  if (localMap.has(norm)) return localMap.get(norm)!.impactFactor;
 
   if (isTopJournalName(journal)) return 20;
   return 0;

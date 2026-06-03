@@ -43,7 +43,6 @@ async function main() {
 
   for (const article of articles) {
     const impactFactor = await resolveImpactFactor(article.journal);
-    if (impactFactor <= 0) continue;
 
     const data = {
       impactFactor,
