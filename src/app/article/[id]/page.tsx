@@ -10,6 +10,7 @@ import { ArticleCard } from "@/components/article-card";
 import { ArticleLiteratureLinks } from "@/components/article-literature-links";
 import { FavoriteButton } from "@/components/favorite-button";
 import { Badge } from "@/components/ui/badge";
+import { decodeHtmlEntities } from "@/lib/html";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: article.titleCn ?? article.titleEn,
-    description: article.aiSummary ?? article.abstract?.slice(0, 160),
+    description: article.aiSummary ?? (article.abstract ? decodeHtmlEntities(article.abstract).slice(0, 160) : undefined),
     openGraph: {
       title: article.titleEn,
       description: article.aiSummary ?? undefined,
@@ -59,6 +60,7 @@ export default async function ArticlePage({ params }: Props) {
   const spec = SPECIALTY_CONFIG[article.specialty];
   const analysis = article.aiAnalysisJson as AiAnalysis | null;
   const keywordsBilingual = article.keywordsBilingual as { en: string; cn: string }[] | null;
+  const abstractEn = article.abstract ? decodeHtmlEntities(article.abstract) : null;
 
   return (
     <article className="container mx-auto max-w-4xl px-4 py-10">
@@ -166,12 +168,12 @@ export default async function ArticlePage({ params }: Props) {
         </section>
       )}
 
-      {article.abstract && (
+      {abstractEn && (
         <section className="mt-8">
           <h2 className="mb-3 font-serif text-xl font-semibold text-muted-foreground">
             Abstract (English)
           </h2>
-          <p className="leading-relaxed text-muted-foreground">{article.abstract}</p>
+          <p className="leading-relaxed text-muted-foreground">{abstractEn}</p>
         </section>
       )}
 

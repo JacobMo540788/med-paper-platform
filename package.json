@@ -21,6 +21,7 @@
     "db:seed": "tsx scripts/seed-journals.ts",
     "revalidate:articles": "tsx scripts/revalidate-existing-articles.ts",
     "import:core-reviews": "tsx scripts/import-core-reviews.ts",
+    "generate:ai-analysis": "tsx scripts/generate-ai-analysis.ts",
     "test:verification": "tsx scripts/verification-smoke-test.ts",
     "worker": "tsx src/jobs/worker.ts"
   },

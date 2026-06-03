@@ -2,6 +2,7 @@ import type { StudyType } from "@prisma/client";
 import { prisma } from "../db";
 import { classifyStudyType } from "../classifier";
 import { runFullLlmPipeline } from "../llm/analyzer";
+import { decodeHtmlEntities } from "../html";
 import type { RawPaper } from "../types";
 import { mergeVerifiedData, verifyArticle } from "../validation/article-verifier";
 
@@ -38,6 +39,8 @@ export async function upsertArticleRecord(
   }
 
   const verifiedPaper = mergeVerifiedData(paper, verification.verifiedData, verification.sourceUrl);
+  const cleanAbstract = verifiedPaper.abstract ? decodeHtmlEntities(verifiedPaper.abstract) : null;
+  const cleanTitle = decodeHtmlEntities(verifiedPaper.titleEn);
 
   const existing = await prisma.article.findFirst({
     where: {
@@ -62,8 +65,8 @@ export async function upsertArticleRecord(
   if (shouldRunLlm) {
     try {
       const llm = await runFullLlmPipeline({
-        titleEn: verifiedPaper.titleEn,
-        abstract: verifiedPaper.abstract ?? "",
+        titleEn: cleanTitle,
+        abstract: cleanAbstract ?? "",
         specialty: verifiedPaper.specialty,
         studyType,
         journal: verifiedPaper.journal,
@@ -79,9 +82,9 @@ export async function upsertArticleRecord(
   }
 
   const data = {
-    titleEn: verifiedPaper.titleEn,
+    titleEn: cleanTitle,
     titleCn,
-    abstract: verifiedPaper.abstract ?? null,
+    abstract: cleanAbstract,
     abstractCn,
     journal: verifiedPaper.journal,
     impactFactor,
