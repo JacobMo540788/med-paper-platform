@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:lan": "next dev -H 0.0.0.0",
     "dev:all": "concurrently -n web,worker -c blue,green \"npm run dev:lan\" \"npm run worker\"",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && next build",
     "build:full": "npx prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
