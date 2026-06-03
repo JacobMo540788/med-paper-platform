@@ -42,16 +42,7 @@ export async function fetchPubMedRecent(
 
   const search = await fetchJson<{ esearchresult?: { idlist?: string[] } }>(searchUrl);
   const ids = search.esearchresult?.idlist ?? [];
-  if (ids.length === 0) {
-    const fallbackTerm = `(${cfg.pubmedQuery}) AND ${TOP_JOURNAL_QUERY} AND (english[Language])`;
-    const fbUrl =
-      `${BASE}/esearch.fcgi?db=pubmed&retmode=json&retmax=${maxResults}` +
-      `&sort=date&term=${encodeURIComponent(fallbackTerm)}${apiKeyParam()}`;
-    const fb = await fetchJson<{ esearchresult?: { idlist?: string[] } }>(fbUrl);
-    const fbIds = fb.esearchresult?.idlist ?? [];
-    if (fbIds.length === 0) return [];
-    return fetchPubMedDetails(fbIds, specialty);
-  }
+  if (ids.length === 0) return [];
 
   await sleep(350);
   return fetchPubMedDetails(ids, specialty);
@@ -156,7 +147,8 @@ function parsePubmedArticle(article: PubmedArticle, specialty: Specialty): RawPa
   const abstract = parseAbstract(art.Abstract?.AbstractText);
   const authors = parseAuthors(art.AuthorList?.Author);
   const keywords = parseMesh(med?.MeshHeadingList?.MeshHeading);
-  const publishDate = parseDate(med?.DateCompleted) ?? new Date();
+  const publishDate = parseDate(med?.DateCompleted);
+  if (!publishDate) return null;
 
   const pubTypes = art.PublicationTypeList?.PublicationType;
   const typeList = Array.isArray(pubTypes) ? pubTypes : pubTypes ? [pubTypes] : [];
@@ -176,6 +168,7 @@ function parsePubmedArticle(article: PubmedArticle, specialty: Specialty): RawPa
     keywords,
     articleType: articleType || undefined,
     externalUrl: pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : undefined,
+    sourceProvider: "pubmed",
     specialty,
   };
 }

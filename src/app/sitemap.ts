@@ -5,6 +5,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const articles = await prisma.article.findMany({
+    where: { verificationStatus: "VERIFIED" },
     select: { id: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
     take: 500,

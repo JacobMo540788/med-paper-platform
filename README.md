@@ -60,7 +60,7 @@
 med-paper-platform/
 ├── prisma/schema.prisma      # 数据库模型
 ├── data/journal-impact-factors.json
-├── scripts/seed-demo.ts      # 演示种子数据
+├── scripts/seed-journals.ts  # 仅同步期刊影响因子，不生成论文元数据
 ├── src/
 │   ├── app/                  # 页面 + API
 │   ├── components/           # UI 组件

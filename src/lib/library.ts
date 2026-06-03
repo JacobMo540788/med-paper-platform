@@ -29,6 +29,7 @@ export async function searchSpecialtyLibrary(params: LibrarySearchParams) {
 
   const where: Prisma.ArticleWhereInput = {
     specialty: params.specialty,
+    verificationStatus: "VERIFIED",
     ...(params.libraryType === "history"
       ? { isInHistory: true }
       : { isCoreLibrary: true }),
@@ -88,8 +89,8 @@ export async function searchSpecialtyLibrary(params: LibrarySearchParams) {
 
 export async function countLibraryArticles(specialty: Specialty) {
   const [history, core] = await Promise.all([
-    prisma.article.count({ where: { specialty, isInHistory: true } }),
-    prisma.article.count({ where: { specialty, isCoreLibrary: true } }),
+    prisma.article.count({ where: { specialty, isInHistory: true, verificationStatus: "VERIFIED" } }),
+    prisma.article.count({ where: { specialty, isCoreLibrary: true, verificationStatus: "VERIFIED" } }),
   ]);
   return { history, core };
 }

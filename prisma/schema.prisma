@@ -27,6 +27,12 @@ enum ArticleSource {
   SEED
 }
 
+enum ArticleVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
 model Article {
   id              String        @id @default(cuid())
   titleEn         String        @map("title_en")
@@ -55,6 +61,11 @@ model Article {
   isCoreLibrary   Boolean       @default(false) @map("is_core_library")
   coreAddedAt     DateTime?     @map("core_added_at")
   source          ArticleSource @default(PUBMED)
+  sourceProvider  String?       @map("source_provider")
+  sourceUrl       String?       @map("source_url")
+  verificationStatus ArticleVerificationStatus @default(PENDING) @map("verification_status")
+  verificationError  String?    @map("verification_error") @db.Text
+  lastVerifiedAt     DateTime?  @map("last_verified_at")
   externalUrl     String?       @map("external_url")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
@@ -68,6 +79,7 @@ model Article {
   @@index([isInHistory, specialty])
   @@index([isCoreLibrary, specialty])
   @@index([studyType])
+  @@index([verificationStatus])
   @@map("articles")
 }
 

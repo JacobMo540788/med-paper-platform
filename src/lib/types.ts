@@ -12,6 +12,7 @@ export interface RawPaper {
   keywords: string[];
   articleType?: string;
   externalUrl?: string;
+  sourceProvider?: string;
   specialty: Specialty;
 }
 

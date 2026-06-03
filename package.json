@@ -18,7 +18,9 @@
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate",
     "db:migrate": "npx prisma migrate dev",
-    "db:seed": "tsx scripts/seed-demo.ts",
+    "db:seed": "tsx scripts/seed-journals.ts",
+    "revalidate:articles": "tsx scripts/revalidate-existing-articles.ts",
+    "test:verification": "tsx scripts/verification-smoke-test.ts",
     "worker": "tsx src/jobs/worker.ts"
   },
   "dependencies": {

@@ -11,6 +11,7 @@ export function ArticleLiteratureLinks({
     pmid?: string | null;
     journal: string;
     externalUrl?: string | null;
+    sourceUrl?: string | null;
   };
 }) {
   const links = buildLiteratureLinks(article);

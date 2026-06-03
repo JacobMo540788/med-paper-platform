@@ -58,7 +58,7 @@ export async function searchArticles(params: SearchParams) {
   const limit = Math.min(params.limit ?? 20, 50);
   const skip = (page - 1) * limit;
 
-  const where: Prisma.ArticleWhereInput = {};
+  const where: Prisma.ArticleWhereInput = { verificationStatus: "VERIFIED" };
 
   if (params.specialty) where.specialty = params.specialty;
   if (params.studyType) where.studyType = params.studyType;
@@ -110,7 +110,7 @@ export async function getRelatedArticles(
   limit = 5
 ) {
   return prisma.article.findMany({
-    where: { specialty, id: { not: id } },
+    where: { specialty, id: { not: id }, verificationStatus: "VERIFIED" },
     orderBy: { impactFactor: "desc" },
     take: limit,
   });

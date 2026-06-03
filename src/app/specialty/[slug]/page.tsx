@@ -21,7 +21,7 @@ export default async function SpecialtyPage({ params }: Props) {
   const counts = await countLibraryArticles(specialty);
 
   const todayArticles = await prisma.article.findMany({
-    where: { specialty, isTodayPick: true, featuredDateKey: todayKey },
+    where: { specialty, isTodayPick: true, featuredDateKey: todayKey, verificationStatus: "VERIFIED" },
     orderBy: [{ impactFactor: "desc" }, { publishDate: "desc" }],
     take: 12,
   });

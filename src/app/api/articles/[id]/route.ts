@@ -10,7 +10,7 @@ export async function GET(
   const { id } = await params;
   try {
     const article = await getArticleById(id);
-    if (!article) {
+    if (!article || article.verificationStatus !== "VERIFIED") {
       return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
     }
     const related = await getRelatedArticles(id, article.specialty);

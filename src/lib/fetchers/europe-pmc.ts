@@ -38,23 +38,31 @@ export async function fetchEuropePmcRecent(
   const data = (await res.json()) as EuropePmcResult;
   const hits = data.resultList?.result ?? [];
 
-  return hits.map((h) => ({
-    titleEn: h.title ?? "",
-    abstract: h.abstractText,
-    journal: h.journalTitle ?? "Unknown",
-    doi: h.doi,
-    pmid: h.pmid,
-    authors: h.authorString?.split(", ") ?? [],
-    publishDate: h.firstPublicationDate ? new Date(h.firstPublicationDate) : new Date(),
-    keywords: h.keywordList?.keyword ?? [],
-    articleType: h.pubTypeList?.pubType?.join("; "),
-    externalUrl: h.pmid
-      ? `https://europepmc.org/article/MED/${h.pmid}`
-      : h.doi
-        ? `https://doi.org/${h.doi}`
-        : undefined,
-    specialty,
-  })).filter((p) => p.titleEn.length > 5);
+  const papers: RawPaper[] = [];
+  for (const h of hits) {
+    if (!h.firstPublicationDate || (!h.pmid && !h.doi)) continue;
+    const paper: RawPaper = {
+        titleEn: h.title ?? "",
+        abstract: h.abstractText,
+        journal: h.journalTitle ?? "Unknown",
+        doi: h.doi,
+        pmid: h.pmid,
+        authors: h.authorString?.split(", ") ?? [],
+        publishDate: new Date(h.firstPublicationDate),
+        keywords: h.keywordList?.keyword ?? [],
+        articleType: h.pubTypeList?.pubType?.join("; "),
+        externalUrl: h.pmid
+          ? `https://europepmc.org/article/MED/${h.pmid}`
+          : h.doi
+            ? `https://doi.org/${h.doi}`
+            : undefined,
+        sourceProvider: "europepmc",
+        specialty,
+      };
+    if (paper.titleEn.length > 5) papers.push(paper);
+  }
+
+  return papers;
 }
 
 function today(): string {

@@ -35,7 +35,8 @@ async function enrichPaper(paper: RawPaper): Promise<RawPaper> {
       publishDate: parseCrossrefDate(cr.published) ?? paper.publishDate,
       journal: cr["container-title"]?.[0] ?? paper.journal,
     };
-  } catch {
+  } catch (e) {
+    console.error(`[core-crossref-enrich] ${paper.doi} failed:`, e);
     return paper;
   }
 }
@@ -67,11 +68,11 @@ export async function runCoreLibrarySyncForSpecialty(specialty: Specialty): Prom
     if (!passesCoreIfFilter(ifVal)) continue;
 
     const studyType = classifyStudyType(paper);
-    await upsertArticleRecord(paper, ifVal, studyType, {
+    const articleId = await upsertArticleRecord(paper, ifVal, studyType, {
       asCoreLibrary: true,
       runLlm: !process.env.SKIP_CORE_LLM,
     });
-    accepted++;
+    if (articleId) accepted++;
   }
 
   return { fetched: rawList.length, accepted };

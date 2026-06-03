@@ -11,58 +11,41 @@ export function buildLiteratureLinks(article: {
   pmid?: string | null;
   journal: string;
   externalUrl?: string | null;
+  sourceUrl?: string | null;
 }): LiteratureLink[] {
   const links: LiteratureLink[] = [];
 
-  if (article.doi) {
+  if (article.sourceUrl) {
     links.push({
-      label: "出版社全文（DOI）",
-      href: `https://doi.org/${article.doi}`,
-      description: "跳转到期刊官方页面",
+      label: "原始来源",
+      href: article.sourceUrl,
+      description: "已校验文献的真实来源链接",
       primary: true,
-    });
-    links.push({
-      label: "Europe PMC",
-      href: `https://europepmc.org/article/MED/DOI/${encodeURIComponent(article.doi)}`,
-      description: "开放获取全文（如有）",
     });
   }
 
-  if (article.pmid && !article.pmid.startsWith("demo-")) {
+  if (article.doi) {
+    links.push({
+      label: "DOI",
+      href: `https://doi.org/${article.doi}`,
+      description: "通过 DOI 解析文献来源",
+      primary: !links.some((link) => link.primary),
+    });
+  }
+
+  if (article.pmid) {
     links.push({
       label: "PubMed",
       href: `https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`,
-      description: "美国国立医学图书馆条目",
-      primary: !article.doi,
+      description: "PubMed 文献条目",
+      primary: !links.some((link) => link.primary),
     });
     links.push({
       label: "Europe PMC",
       href: `https://europepmc.org/article/MED/${article.pmid}`,
-      description: "欧洲开放文献库",
-    });
-  } else if (article.pmid?.startsWith("demo-")) {
-    links.push({
-      label: "PubMed（演示数据）",
-      href: `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(article.titleEn)}`,
-      description: "演示论文，按标题检索相似文献",
+      description: "Europe PMC 文献条目",
     });
   }
-
-  if (article.externalUrl) {
-    links.push({
-      label: "文献直达",
-      href: article.externalUrl,
-      description: "原始来源链接",
-      primary: true,
-    });
-  }
-
-  const scholarQuery = encodeURIComponent(`${article.titleEn} ${article.journal}`);
-  links.push({
-    label: "Google Scholar",
-    href: `https://scholar.google.com/scholar?q=${scholarQuery}`,
-    description: "学术搜索",
-  });
 
   return links;
 }

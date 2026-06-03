@@ -45,9 +45,6 @@ export default async function HomePage() {
           <p className="mt-2 text-sm">
             系统将于每日北京时间 07:00 自动更新；亦可手动触发抓取，或前往各学科历史库 / 核心文献库浏览。
           </p>
-          <code className="mt-4 block text-xs">
-            npm run db:push && npm run db:seed
-          </code>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
