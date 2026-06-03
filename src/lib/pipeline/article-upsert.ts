@@ -139,7 +139,7 @@ export async function upsertArticleRecord(
 async function markExistingArticleFailed(paper: RawPaper, error: string) {
   const selectors = [
     paper.doi ? { doi: paper.doi } : null,
-    paper.pmid ? { pmid: paper.pmid } : null,
+    paper.pmid ? { pmid: String(paper.pmid) } : null,
   ].filter(Boolean) as { doi?: string; pmid?: string }[];
 
   if (!selectors.length) return;

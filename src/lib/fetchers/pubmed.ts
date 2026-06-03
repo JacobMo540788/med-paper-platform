@@ -158,7 +158,7 @@ function parsePubmedArticle(article: PubmedArticle, specialty: Specialty): RawPa
   if (!titleEn) return null;
 
   const journal = art.Journal?.Title ?? "Unknown Journal";
-  const pmid = med?.PMID?.["#text"] ?? String(med?.PMID ?? "");
+  const pmid = String(med?.PMID?.["#text"] ?? med?.PMID ?? "");
 
   let doi: string | undefined;
   const ids = article.PubmedData?.ArticleIdList?.ArticleId;
