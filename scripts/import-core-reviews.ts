@@ -41,7 +41,7 @@ async function main() {
         studyType,
         {
           asCoreLibrary: true,
-          runLlm: false,
+          runLlm: true,
         }
       );
 

@@ -11,6 +11,7 @@ import { ArticleLiteratureLinks } from "@/components/article-literature-links";
 import { FavoriteButton } from "@/components/favorite-button";
 import { Badge } from "@/components/ui/badge";
 import { decodeHtmlEntities } from "@/lib/html";
+import { generateAiAnalysisForArticle } from "@/lib/pipeline/ai-analysis";
 
 export const dynamic = "force-dynamic";
 
@@ -58,8 +59,19 @@ export default async function ArticlePage({ params }: Props) {
 
   const related = await getRelatedArticles(id, article.specialty);
   const spec = SPECIALTY_CONFIG[article.specialty];
-  const analysis = article.aiAnalysisJson as AiAnalysis | null;
-  const keywordsBilingual = article.keywordsBilingual as { en: string; cn: string }[] | null;
+  const generatedAnalysis = await generateAiAnalysisForArticle(article).catch((error) => {
+    console.error(
+      `[ai-analysis:on-demand] ${article.id} failed:`,
+      error instanceof Error ? error.message : error
+    );
+    return null;
+  });
+  const analysis = (generatedAnalysis?.aiAnalysisJson ?? article.aiAnalysisJson) as AiAnalysis | null;
+  const keywordsBilingual = (generatedAnalysis?.keywordsBilingual ?? article.keywordsBilingual) as
+    | { en: string; cn: string }[]
+    | null;
+  const titleCn = generatedAnalysis?.titleCn ?? article.titleCn;
+  const abstractCn = generatedAnalysis?.abstractCn ?? article.abstractCn;
   const abstractEn = article.abstract ? decodeHtmlEntities(article.abstract) : null;
 
   return (
@@ -76,7 +88,7 @@ export default async function ArticlePage({ params }: Props) {
       </div>
 
       <h1 className="font-serif text-3xl font-bold leading-tight md:text-4xl">{article.titleEn}</h1>
-      {article.titleCn && <p className="mt-3 text-xl text-muted-foreground">{article.titleCn}</p>}
+      {titleCn && <p className="mt-3 text-xl text-muted-foreground">{titleCn}</p>}
 
       <ArticleLiteratureLinks article={article} />
 
@@ -161,10 +173,10 @@ export default async function ArticlePage({ params }: Props) {
         </section>
       )}
 
-      {article.abstractCn && (
+      {abstractCn && (
         <section className="mt-10">
           <h2 className="mb-3 font-serif text-xl font-semibold">摘要（中文）</h2>
-          <p className="leading-relaxed text-foreground/90">{article.abstractCn}</p>
+          <p className="leading-relaxed text-foreground/90">{abstractCn}</p>
         </section>
       )}
 
