@@ -204,8 +204,17 @@ export async function verifyArticle(input: ArticleVerificationInput): Promise<Ar
   }
 
   if (input.pmid) {
-    const result = await verifyWithPubMed(input);
-    if (result.ok || !input.doi) return result;
+    try {
+      const result = await verifyWithPubMed(input);
+      if (result.ok || !input.doi) return result;
+    } catch (e) {
+      if (!input.doi) {
+        return {
+          ok: false,
+          error: e instanceof Error ? e.message : String(e),
+        };
+      }
+    }
   }
 
   if (input.doi) return verifyWithCrossRef(input);

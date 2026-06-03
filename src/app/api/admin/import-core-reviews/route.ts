@@ -24,6 +24,10 @@ function specialtyFromParam(value: string | null): Specialty | null {
   return Object.keys(SPECIALTY_CONFIG).includes(value) ? (value as Specialty) : null;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!isAuthorized(req)) {
@@ -42,6 +46,7 @@ export async function POST(req: NextRequest) {
     let accepted = 0;
     let rejected = 0;
     let belowIf = 0;
+    const errors: string[] = [];
 
     for (const paper of candidates) {
       const impactFactor = await resolveImpactFactor(paper.journal);
@@ -54,15 +59,22 @@ export async function POST(req: NextRequest) {
         ...paper,
         articleType: paper.articleType ? `${paper.articleType}; Review` : "Review",
       };
-      const articleId = await upsertArticleRecord(
-        withReviewType,
-        impactFactor,
-        classifyStudyType(withReviewType),
-        { asCoreLibrary: true, runLlm: false }
-      );
+      try {
+        const articleId = await upsertArticleRecord(
+          withReviewType,
+          impactFactor,
+          classifyStudyType(withReviewType),
+          { asCoreLibrary: true, runLlm: false }
+        );
 
-      if (articleId) accepted++;
-      else rejected++;
+        if (articleId) accepted++;
+        else rejected++;
+      } catch (e) {
+        rejected++;
+        errors.push(`${paper.pmid ?? paper.doi ?? paper.titleEn}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      await sleep(450);
     }
 
     return NextResponse.json({
@@ -72,6 +84,7 @@ export async function POST(req: NextRequest) {
       accepted,
       rejected,
       belowIf,
+      errors: errors.slice(0, 20),
     });
   } catch (e) {
     return NextResponse.json(
