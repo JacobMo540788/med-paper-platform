@@ -42,7 +42,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const candidates = await fetchPubMedReviewLibrary(specialty, 10, 120);
+    const max = Math.min(parseInt(req.nextUrl.searchParams.get("max") ?? "80", 10), 120);
+    const retstart = Math.max(parseInt(req.nextUrl.searchParams.get("retstart") ?? "0", 10), 0);
+    const candidates = await fetchPubMedReviewLibrary(specialty, 10, max, retstart);
     let accepted = 0;
     let rejected = 0;
     let belowIf = 0;
@@ -80,6 +82,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       specialty,
+      retstart,
+      max,
       fetched: candidates.length,
       accepted,
       rejected,

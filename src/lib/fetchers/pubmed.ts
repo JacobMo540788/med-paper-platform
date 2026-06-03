@@ -78,7 +78,8 @@ export async function fetchPubMedCoreLibrary(
 export async function fetchPubMedReviewLibrary(
   specialty: Specialty,
   years = 10,
-  maxResults = 160
+  maxResults = 160,
+  retStart = 0
 ): Promise<RawPaper[]> {
   const cfg = SPECIALTY_CONFIG[specialty];
   const startYear = new Date().getFullYear() - years;
@@ -88,6 +89,7 @@ export async function fetchPubMedReviewLibrary(
 
   const searchUrl =
     `${BASE}/esearch.fcgi?db=pubmed&retmode=json&retmax=${maxResults}` +
+    `&retstart=${retStart}` +
     `&sort=relevance&term=${encodeURIComponent(term)}${apiKeyParam()}`;
 
   const search = await fetchJson<{ esearchresult?: { idlist?: string[] } }>(searchUrl);
