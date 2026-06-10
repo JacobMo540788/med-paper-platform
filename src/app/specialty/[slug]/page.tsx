@@ -44,7 +44,7 @@ export default async function SpecialtyPage({ params }: Props) {
           className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm transition-colors hover:bg-primary/10"
         >
           <span className="font-semibold">核心文献库</span>
-          <span className="ml-2 text-muted-foreground">IF&gt;60 · {counts.core} 篇</span>
+          <span className="ml-2 text-muted-foreground">IF&gt;15 · {counts.core} 篇</span>
         </Link>
       </div>
 

@@ -12,6 +12,15 @@ import type { ArticleCardDTO } from "@/lib/types";
 export function ArticleCard({ article, index = 0 }: { article: ArticleCardDTO; index?: number }) {
   const spec = SPECIALTY_CONFIG[article.specialty as Specialty];
   const studyLabel = STUDY_TYPE_LABEL[article.studyType as StudyType];
+  const recommendLabel =
+    article.recommendSource === "daily_new"
+      ? "今日新文献"
+      : article.recommendSource === "historical"
+        ? "历史高分文献"
+        : article.recommendSource === "core"
+          ? "核心文献重读"
+          : null;
+  const articleTypeLabel = article.articleType?.split(";")[0]?.trim();
 
   return (
     <motion.div
@@ -23,10 +32,12 @@ export function ArticleCard({ article, index = 0 }: { article: ArticleCardDTO; i
         <Card className="group h-full transition-shadow hover:shadow-lg">
           <CardHeader className="space-y-3 pb-2">
             <div className="flex flex-wrap items-center gap-2">
+              {recommendLabel && <Badge>{recommendLabel}</Badge>}
               <Badge variant="secondary">{spec.label}</Badge>
               <Badge variant={article.studyType === "CLINICAL" ? "clinical" : "basic"}>
                 {studyLabel}
               </Badge>
+              {articleTypeLabel && <Badge variant="outline">{articleTypeLabel}</Badge>}
               <Badge variant="outline">IF {article.impactFactor.toFixed(1)}</Badge>
             </div>
             <h2 className="font-serif text-lg font-semibold leading-snug group-hover:text-primary">
@@ -51,6 +62,11 @@ export function ArticleCard({ article, index = 0 }: { article: ArticleCardDTO; i
             {article.aiSummary && (
               <p className="border-l-2 border-primary/40 pl-3 italic text-foreground/80">
                 {article.aiSummary}
+              </p>
+            )}
+            {article.recommendationReason && (
+              <p className="rounded bg-muted px-3 py-2 text-xs text-muted-foreground">
+                推荐理由：{article.recommendationReason}
               </p>
             )}
           </CardContent>

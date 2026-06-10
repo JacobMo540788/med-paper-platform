@@ -56,6 +56,9 @@ model Article {
   isTodayPick     Boolean       @default(false) @map("is_today_pick")
   /** 北京时间日期键 YYYY-MM-DD，标记为当日首页推荐 */
   featuredDateKey String?       @map("featured_date_key")
+  lastRecommendedAt DateTime?   @map("last_recommended_at")
+  recommendCount    Int         @default(0) @map("recommend_count")
+  recommendSource   String?     @map("recommend_source")
   isInHistory     Boolean       @default(false) @map("is_in_history")
   archivedAt      DateTime?     @map("archived_at")
   isCoreLibrary   Boolean       @default(false) @map("is_core_library")
@@ -71,16 +74,37 @@ model Article {
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
   favorites Favorite[]
+  dailyRecommendations DailyRecommendation[]
 
   @@index([specialty, publishDate])
   @@index([impactFactor])
   @@index([isTodayPick])
   @@index([featuredDateKey])
+  @@index([lastRecommendedAt])
+  @@index([recommendSource])
   @@index([isInHistory, specialty])
   @@index([isCoreLibrary, specialty])
   @@index([studyType])
   @@index([verificationStatus])
   @@map("articles")
+}
+
+model DailyRecommendation {
+  id                 String    @id @default(cuid())
+  articleId          String    @map("article_id")
+  article            Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  recommendationDate DateTime  @map("recommendation_date")
+  dateKey            String    @unique @map("date_key")
+  specialty          Specialty
+  recommendSource    String    @map("recommend_source")
+  reason             String?   @db.Text
+  score              Float?
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  @@index([articleId])
+  @@index([specialty])
+  @@index([recommendSource])
+  @@map("daily_recommendations")
 }
 
 model User {

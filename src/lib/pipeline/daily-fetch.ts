@@ -10,9 +10,9 @@ import { enrichFromCrossref, parseCrossrefAuthors, parseCrossrefDate } from "../
 import { passesIfFilter, resolveImpactFactor } from "../journal-if";
 import type { RawPaper } from "../types";
 import { upsertArticleRecord } from "./article-upsert";
+import { selectDailyRecommendation } from "./recommendation";
 
 const ALL_SPECIALTIES = Object.keys(SPECIALTY_CONFIG) as Specialty[];
-const ONCOLOGY_REVIEW_FALLBACK_SPECIALTY: Specialty = "ONCOLOGY_COLORECTAL";
 
 function dedupePapers(papers: RawPaper[]): RawPaper[] {
   const seen = new Set<string>();
@@ -73,8 +73,7 @@ async function fetchAndStoreForSpecialty(
 
     const studyType = classifyStudyType(paper);
     const articleId = await upsertArticleRecord(paper, ifVal, studyType, {
-      asTodayPick: true,
-      featuredDateKey: todayKey,
+      asHistory: true,
       runLlm: true,
     });
 
@@ -85,30 +84,6 @@ async function fetchAndStoreForSpecialty(
   return { fetched: merged.length, accepted, failed };
 }
 
-async function promoteOncologyReviewFallback(todayKey: string): Promise<number> {
-  const article = await prisma.article.findFirst({
-    where: {
-      specialty: ONCOLOGY_REVIEW_FALLBACK_SPECIALTY,
-      isCoreLibrary: true,
-      verificationStatus: "VERIFIED",
-      featuredDateKey: null,
-    },
-    orderBy: [{ impactFactor: "desc" }, { publishDate: "desc" }],
-  });
-
-  if (!article) return 0;
-
-  await prisma.article.update({
-    where: { id: article.id },
-    data: {
-      isTodayPick: true,
-      featuredDateKey: todayKey,
-    },
-  });
-
-  return 1;
-}
-
 export async function runDailyFetchPipeline(): Promise<{
   totalFetched: number;
   totalAccepted: number;
@@ -117,6 +92,12 @@ export async function runDailyFetchPipeline(): Promise<{
   archived: number;
   beijingDateKey: string;
   durationMs: number;
+  recommendation?: {
+    articleId: string;
+    recommendSource: string;
+    reason: string;
+    score: number;
+  } | null;
 }> {
   const start = Date.now();
   const todayKey = getBeijingDateKey();
@@ -151,23 +132,8 @@ export async function runDailyFetchPipeline(): Promise<{
     }
   }
 
-  if (totalAccepted === 0) {
-    totalFallback = await promoteOncologyReviewFallback(todayKey);
-    if (totalFallback) totalAccepted += totalFallback;
-
-    await prisma.fetchLog.create({
-      data: {
-        specialty: ONCOLOGY_REVIEW_FALLBACK_SPECIALTY,
-        fetched: 0,
-        accepted: totalFallback,
-        fallback: totalFallback,
-        errors: totalFallback
-          ? "No eligible daily articles found. Promoted one verified oncology core review as today's homepage pick."
-          : "No eligible daily articles found and no unused verified oncology core review was available.",
-        durationMs: 0,
-      },
-    });
-  }
+  const recommendation = await selectDailyRecommendation();
+  totalFallback = recommendation?.recommendSource === "daily_new" ? 0 : recommendation ? 1 : 0;
 
   await cacheDel("cache:*");
 
@@ -192,18 +158,42 @@ export async function runDailyFetchPipeline(): Promise<{
     archived,
     beijingDateKey: todayKey,
     durationMs,
+    recommendation: recommendation
+      ? {
+          articleId: recommendation.article.id,
+          recommendSource: recommendation.recommendSource,
+          reason: recommendation.reason,
+          score: recommendation.score,
+        }
+      : null,
   };
 }
 
 export async function getTodayPicks() {
   const todayKey = getBeijingDateKey();
-  return prisma.article.findMany({
+  const rec = await prisma.dailyRecommendation.findUnique({
+    where: { dateKey: todayKey },
+    include: { article: true },
+  });
+
+  if (rec?.article?.verificationStatus === "VERIFIED") {
+    return [
+      {
+        ...rec.article,
+        recommendSource: rec.recommendSource,
+        recommendationReason: rec.reason,
+        recommendationScore: rec.score,
+      },
+    ];
+  }
+
+  const fallback = await prisma.article.findFirst({
     where: {
       isTodayPick: true,
       featuredDateKey: todayKey,
       verificationStatus: "VERIFIED",
     },
     orderBy: [{ impactFactor: "desc" }, { publishDate: "desc" }],
-    take: 30,
   });
+  return fallback ? [fallback] : [];
 }

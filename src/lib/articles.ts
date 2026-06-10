@@ -17,6 +17,10 @@ export function toCardDTO(a: {
   publishDate: Date;
   keywords: string[];
   aiSummary: string | null;
+  articleType?: string | null;
+  recommendSource?: string | null;
+  recommendationReason?: string | null;
+  recommendationScore?: number | null;
 }): ArticleCardDTO {
   return {
     id: a.id,
@@ -29,6 +33,10 @@ export function toCardDTO(a: {
     publishDate: a.publishDate.toISOString(),
     keywords: a.keywords,
     aiSummary: a.aiSummary,
+    articleType: a.articleType ?? null,
+    recommendSource: a.recommendSource ?? null,
+    recommendationReason: a.recommendationReason ?? null,
+    recommendationScore: a.recommendationScore ?? null,
   };
 }
 

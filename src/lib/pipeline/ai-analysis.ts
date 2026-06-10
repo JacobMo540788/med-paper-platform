@@ -10,7 +10,8 @@ export function canRunAiAnalysis() {
 }
 
 export async function generateAiAnalysisForArticle(
-  article: Article
+  article: Article,
+  options?: { timeoutMs?: number }
 ): Promise<Pick<Article, "titleCn" | "abstractCn" | "aiSummary" | "aiAnalysisJson" | "keywordsBilingual"> | null> {
   if (!canRunAiAnalysis()) return null;
   if (article.verificationStatus !== "VERIFIED") return null;
@@ -26,6 +27,7 @@ export async function generateAiAnalysisForArticle(
     specialty: article.specialty,
     studyType: article.studyType,
     journal: article.journal,
+    timeoutMs: options?.timeoutMs,
   });
 
   const updated = await prisma.article.update({

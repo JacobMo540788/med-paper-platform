@@ -42,7 +42,7 @@ async function enrichPaper(paper: RawPaper): Promise<RawPaper> {
 }
 
 /**
- * 核心文献库：近15年、IF>60、顶刊优先收录。
+ * 核心文献库：近15年、IF>15、顶刊优先收录。
  */
 export async function runCoreLibrarySyncForSpecialty(specialty: Specialty): Promise<{
   fetched: number;

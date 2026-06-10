@@ -52,7 +52,7 @@ const TOP_JOURNAL_QUERY =
   '(Nature[Journal] OR Science[Journal] OR Cell[Journal] OR "N Engl J Med"[Journal] OR Lancet[Journal] OR JAMA[Journal] OR BMJ[Journal] OR "Nature Medicine"[Journal] OR "Nature Biotechnology"[Journal] OR "Nature Genetics"[Journal] OR "Nature Communications"[Journal] OR "Science Translational Medicine"[Journal] OR "Cancer Cell"[Journal] OR "Cell Metabolism"[Journal])';
 
 /**
- * 核心文献库：近15年顶刊论文检索（后续按 IF>60 过滤）。
+ * 核心文献库：近15年高影响因子论文检索（后续按 IF>15 过滤）。
  */
 export async function fetchPubMedCoreLibrary(
   specialty: Specialty,

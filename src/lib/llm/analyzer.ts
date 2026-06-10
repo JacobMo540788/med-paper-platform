@@ -12,12 +12,13 @@ export interface TranslationResult {
 
 export async function translatePaper(
   titleEn: string,
-  abstract: string
+  abstract: string,
+  options?: { timeoutMs?: number }
 ): Promise<TranslationResult> {
   const raw = await chatCompletion([
     { role: "system", content: SYSTEM_MEDICAL_ANALYST },
     { role: "user", content: buildTranslationPrompt({ titleEn, abstract }) },
-  ]);
+  ], options);
   return extractJson<TranslationResult>(raw);
 }
 
@@ -27,23 +28,27 @@ export async function analyzePaper(params: {
   specialty: Specialty;
   studyType: StudyType;
   journal: string;
+  timeoutMs?: number;
 }): Promise<AiAnalysis> {
   const specialtyLabel = SPECIALTY_CONFIG[params.specialty].label;
   const studyLabel = STUDY_TYPE_LABEL[params.studyType];
 
-  const raw = await chatCompletion([
-    { role: "system", content: SYSTEM_MEDICAL_ANALYST },
-    {
-      role: "user",
-      content: buildAnalysisPrompt({
-        titleEn: params.titleEn,
-        abstract: params.abstract,
-        specialty: specialtyLabel,
-        studyType: studyLabel,
-        journal: params.journal,
-      }),
-    },
-  ]);
+  const raw = await chatCompletion(
+    [
+      { role: "system", content: SYSTEM_MEDICAL_ANALYST },
+      {
+        role: "user",
+        content: buildAnalysisPrompt({
+          titleEn: params.titleEn,
+          abstract: params.abstract,
+          specialty: specialtyLabel,
+          studyType: studyLabel,
+          journal: params.journal,
+        }),
+      },
+    ],
+    { timeoutMs: params.timeoutMs }
+  );
 
   const parsed = extractJson<unknown>(raw);
   return AiAnalysisSchema.parse(parsed);
@@ -55,6 +60,7 @@ export async function runFullLlmPipeline(params: {
   specialty: Specialty;
   studyType: StudyType;
   journal: string;
+  timeoutMs?: number;
 }): Promise<{
   titleCn: string;
   abstractCn: string;
@@ -62,7 +68,7 @@ export async function runFullLlmPipeline(params: {
   aiAnalysis: AiAnalysis;
 }> {
   const [translation, analysis] = await Promise.all([
-    translatePaper(params.titleEn, params.abstract),
+    translatePaper(params.titleEn, params.abstract, { timeoutMs: params.timeoutMs }),
     analyzePaper(params),
   ]);
 

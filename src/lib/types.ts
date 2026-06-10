@@ -46,4 +46,8 @@ export interface ArticleCardDTO {
   publishDate: string;
   keywords: string[];
   aiSummary: string | null;
+  articleType: string | null;
+  recommendSource?: string | null;
+  recommendationReason?: string | null;
+  recommendationScore?: number | null;
 }
