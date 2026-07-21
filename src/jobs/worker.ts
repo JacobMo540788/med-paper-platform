@@ -43,7 +43,7 @@ async function main() {
     console.error(`[worker] Job ${job?.id} failed:`, err);
   });
 
-  console.log(`[worker] Scheduled daily fetch at 07:00 Beijing (${DAILY_UPDATE_CRON}, tz=${BEIJING_TIMEZONE})`);
+  console.log(`[worker] Scheduled weekly urology update at 07:00 Beijing (${DAILY_UPDATE_CRON}, tz=${BEIJING_TIMEZONE})`);
   console.log("[worker] Keep this process running — no manual fetch needed each day.");
   console.log("[worker] Requires Redis (docker compose up -d redis).");
 }

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { AiAnalysis } from "@/lib/types";
 import { getArticleById, getRelatedArticles, toCardDTO } from "@/lib/articles";
-import { SPECIALTY_CONFIG, STUDY_TYPE_LABEL } from "@/lib/constants";
+import { RESOURCE_KIND_LABEL, SPECIALTY_CONFIG, STUDY_TYPE_LABEL, type ResourceKind } from "@/lib/constants";
 import { PublicationDate } from "@/components/publication-date";
 import { AiAnalysisPanel } from "@/components/ai-analysis-panel";
 import { ArticleCard } from "@/components/article-card";
@@ -17,13 +17,17 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
+function jifText(article: { impactFactor: number; jifStatus?: string | null; jifYear?: number | null }) {
+  if (article.jifStatus === "NOT_APPLICABLE") return "IF 不适用";
+  if (article.jifStatus === "PENDING") return "IF 待核验";
+  return `IF ${article.impactFactor.toFixed(1)}${article.jifYear ? `（${article.jifYear}）` : ""}`;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const article = await getArticleById(id);
   if (!article) return { title: "文章未找到" };
-  if (article.verificationStatus !== "VERIFIED") {
-    return { title: "文献尚未通过真实性校验" };
-  }
+  if (article.verificationStatus !== "VERIFIED") return { title: "文献尚未通过真实性校验" };
 
   return {
     title: article.titleCn ?? article.titleEn,
@@ -47,7 +51,7 @@ export default async function ArticlePage({ params }: Props) {
         <div className="rounded-lg border border-dashed p-8 text-center">
           <h1 className="font-serif text-2xl font-bold">该文献尚未通过真实性校验，暂不展示。</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            医学论文元数据必须通过 PubMed、CrossRef 或可信来源校验后才能公开展示。
+            医学论文元数据必须通过 PubMed、CrossRef、机构官网或正式出版页面校验后才能公开展示。
           </p>
           <Link href="/" className="mt-6 inline-block text-sm text-primary hover:underline">
             返回首页
@@ -60,10 +64,7 @@ export default async function ArticlePage({ params }: Props) {
   const related = await getRelatedArticles(id, article.specialty);
   const spec = SPECIALTY_CONFIG[article.specialty];
   const generatedAnalysis = await generateAiAnalysisForArticle(article).catch((error) => {
-    console.error(
-      `[ai-analysis:on-demand] ${article.id} failed:`,
-      error instanceof Error ? error.message : error
-    );
+    console.error(`[ai-analysis:on-demand] ${article.id} failed:`, error instanceof Error ? error.message : error);
     return null;
   });
   const analysis = (generatedAnalysis?.aiAnalysisJson ?? article.aiAnalysisJson) as AiAnalysis | null;
@@ -73,6 +74,9 @@ export default async function ArticlePage({ params }: Props) {
   const titleCn = generatedAnalysis?.titleCn ?? article.titleCn;
   const abstractCn = generatedAnalysis?.abstractCn ?? article.abstractCn;
   const abstractEn = article.abstract ? decodeHtmlEntities(article.abstract) : null;
+  const resourceLabel = article.resourceKind
+    ? RESOURCE_KIND_LABEL[article.resourceKind as ResourceKind]
+    : null;
 
   return (
     <article className="container mx-auto max-w-4xl px-4 py-10">
@@ -82,7 +86,9 @@ export default async function ArticlePage({ params }: Props) {
           <Badge variant={article.studyType === "CLINICAL" ? "clinical" : "basic"}>
             {STUDY_TYPE_LABEL[article.studyType]}
           </Badge>
-          <Badge variant="outline">IF {article.impactFactor.toFixed(1)}</Badge>
+          {resourceLabel && <Badge>{resourceLabel}</Badge>}
+          {article.diseaseArea && <Badge variant="outline">{article.diseaseArea}</Badge>}
+          <Badge variant="outline">{jifText(article)}</Badge>
         </div>
         <FavoriteButton articleId={article.id} />
       </div>
@@ -93,16 +99,29 @@ export default async function ArticlePage({ params }: Props) {
       <ArticleLiteratureLinks article={article} />
 
       <section className="mt-6 rounded-lg border bg-muted/30 p-4 text-sm">
-        <h2 className="font-serif text-lg font-semibold">真实性校验</h2>
+        <h2 className="font-serif text-lg font-semibold">真实性与来源核验</h2>
         <dl className="mt-3 grid gap-2 sm:grid-cols-2">
           <div>
             <dt className="font-medium text-foreground">校验状态</dt>
             <dd className="text-muted-foreground">已通过</dd>
           </div>
           <div>
-            <dt className="font-medium text-foreground">来源</dt>
-            <dd className="text-muted-foreground">{article.sourceProvider ?? "verified source"}</dd>
+            <dt className="font-medium text-foreground">数据来源</dt>
+            <dd className="text-muted-foreground">{article.dataSource ?? article.sourceProvider ?? "verified source"}</dd>
           </div>
+          <div>
+            <dt className="font-medium text-foreground">JIF 状态</dt>
+            <dd className="text-muted-foreground">
+              {jifText(article)}
+              {article.jifSource ? ` · ${article.jifSource}` : ""}
+            </dd>
+          </div>
+          {article.dataVerifiedAt && (
+            <div>
+              <dt className="font-medium text-foreground">数据最后核验日期</dt>
+              <dd className="text-muted-foreground">{article.dataVerifiedAt.toISOString()}</dd>
+            </div>
+          )}
           {article.pmid && (
             <div>
               <dt className="font-medium text-foreground">PMID</dt>
@@ -115,25 +134,19 @@ export default async function ArticlePage({ params }: Props) {
               <dd className="text-muted-foreground">{article.doi}</dd>
             </div>
           )}
-          {article.sourceUrl && (
+          {(article.officialUrl ?? article.sourceUrl) && (
             <div className="sm:col-span-2">
-              <dt className="font-medium text-foreground">原始来源链接</dt>
+              <dt className="font-medium text-foreground">官方或原始来源链接</dt>
               <dd>
                 <a
-                  href={article.sourceUrl}
+                  href={article.officialUrl ?? article.sourceUrl ?? "#"}
                   className="break-all text-primary hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {article.sourceUrl}
+                  {article.officialUrl ?? article.sourceUrl}
                 </a>
               </dd>
-            </div>
-          )}
-          {article.lastVerifiedAt && (
-            <div>
-              <dt className="font-medium text-foreground">最后校验时间</dt>
-              <dd className="text-muted-foreground">{article.lastVerifiedAt.toISOString()}</dd>
             </div>
           )}
         </dl>
@@ -141,15 +154,51 @@ export default async function ArticlePage({ params }: Props) {
 
       <dl className="mt-6 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
         <div>
-          <dt className="font-medium text-foreground">期刊</dt>
-          <dd>{article.journal}</dd>
+          <dt className="font-medium text-foreground">期刊或发布机构</dt>
+          <dd>{article.organization ?? article.journal}</dd>
         </div>
+        {article.guidelineType && (
+          <div>
+            <dt className="font-medium text-foreground">指南类型</dt>
+            <dd>{article.guidelineType}</dd>
+          </div>
+        )}
+        {article.versionYear && (
+          <div>
+            <dt className="font-medium text-foreground">版本或更新年份</dt>
+            <dd>{article.versionYear}</dd>
+          </div>
+        )}
         <div className="sm:col-span-2">
           <PublicationDate date={article.publishDate} size="md" showIso />
         </div>
+        {article.firstAuthor && (
+          <div>
+            <dt className="font-medium text-foreground">第一作者</dt>
+            <dd>{article.firstAuthor}</dd>
+          </div>
+        )}
+        {article.coFirstAuthors.length > 0 && (
+          <div className="sm:col-span-2">
+            <dt className="font-medium text-foreground">共同第一作者</dt>
+            <dd>{article.coFirstAuthors.join("; ")}</dd>
+          </div>
+        )}
+        {article.correspondingAuthors.length > 0 && (
+          <div className="sm:col-span-2">
+            <dt className="font-medium text-foreground">通讯作者</dt>
+            <dd>{article.correspondingAuthors.join("; ")}</dd>
+          </div>
+        )}
+        {article.liuBenRole && (
+          <div>
+            <dt className="font-medium text-foreground">刘犇教授作者角色</dt>
+            <dd>{article.liuBenRole}</dd>
+          </div>
+        )}
         {article.authors.length > 0 && (
           <div className="sm:col-span-2">
-            <dt className="font-medium text-foreground">作者</dt>
+            <dt className="font-medium text-foreground">完整作者</dt>
             <dd>{article.authors.join("; ")}</dd>
           </div>
         )}
@@ -173,6 +222,36 @@ export default async function ArticlePage({ params }: Props) {
         </section>
       )}
 
+      {(article.researchDesign || article.majorFindings || article.significance || article.inclusionEvidence) && (
+        <section className="mt-10 grid gap-4 rounded-lg border p-5">
+          <h2 className="font-serif text-xl font-semibold">结构化证据摘要</h2>
+          {article.researchDesign && (
+            <div>
+              <h3 className="font-medium">研究设计</h3>
+              <p className="mt-1 text-muted-foreground">{article.researchDesign}</p>
+            </div>
+          )}
+          {article.majorFindings && (
+            <div>
+              <h3 className="font-medium">主要发现</h3>
+              <p className="mt-1 text-muted-foreground">{article.majorFindings}</p>
+            </div>
+          )}
+          {article.significance && (
+            <div>
+              <h3 className="font-medium">临床或基础研究意义</h3>
+              <p className="mt-1 text-muted-foreground">{article.significance}</p>
+            </div>
+          )}
+          {article.inclusionEvidence && (
+            <div>
+              <h3 className="font-medium">收录依据</h3>
+              <p className="mt-1 text-muted-foreground">{article.inclusionEvidence}</p>
+            </div>
+          )}
+        </section>
+      )}
+
       {abstractCn && (
         <section className="mt-10">
           <h2 className="mb-3 font-serif text-xl font-semibold">摘要（中文）</h2>
@@ -182,9 +261,7 @@ export default async function ArticlePage({ params }: Props) {
 
       {abstractEn && (
         <section className="mt-8">
-          <h2 className="mb-3 font-serif text-xl font-semibold text-muted-foreground">
-            Abstract (English)
-          </h2>
+          <h2 className="mb-3 font-serif text-xl font-semibold text-muted-foreground">Abstract (English)</h2>
           <p className="leading-relaxed text-muted-foreground">{abstractEn}</p>
         </section>
       )}
@@ -201,7 +278,7 @@ export default async function ArticlePage({ params }: Props) {
 
       {related.length > 0 && (
         <section className="mt-16">
-          <h2 className="mb-6 font-serif text-2xl font-bold">相关文章</h2>
+          <h2 className="mb-6 font-serif text-2xl font-bold">相关资源</h2>
           <div className="grid gap-4 md:grid-cols-2">
             {related.map((r, i) => (
               <ArticleCard key={r.id} article={toCardDTO(r)} index={i} />
@@ -209,6 +286,10 @@ export default async function ArticlePage({ params }: Props) {
           </div>
         </section>
       )}
+
+      <p className="mt-10 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+        声明：本页内容仅供科研与学术参考，不构成医疗建议。
+      </p>
 
       <div className="mt-10">
         <Link href="/" className="text-sm text-primary hover:underline">

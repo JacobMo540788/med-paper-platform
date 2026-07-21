@@ -41,12 +41,36 @@ model Article {
   abstractCn      String?       @map("abstract_cn") @db.Text
   journal         String
   impactFactor    Float         @map("impact_factor")
+  jifStatus       String        @default("VERIFIED") @map("jif_status")
+  jifYear         Int?          @map("jif_year")
+  jifSource       String?       @map("jif_source")
+  jifVerifiedAt   DateTime?     @map("jif_verified_at")
   doi             String?       @unique
   pmid            String?       @unique
   authors         String[]      @default([])
+  firstAuthor     String?       @map("first_author")
+  authorSortKey   String?       @map("author_sort_key")
+  coFirstAuthors  String[]      @default([]) @map("co_first_authors")
+  correspondingAuthors String[] @default([]) @map("corresponding_authors")
   publishDate     DateTime      @map("publish_date")
+  year            Int?
   specialty       Specialty
   studyType       StudyType     @map("study_type")
+  resourceKind    String        @default("CLINICAL_RESEARCH") @map("resource_kind")
+  diseaseArea     String?       @map("disease_area")
+  organization    String?
+  organizationShortName String? @map("organization_short_name")
+  versionYear     Int?          @map("version_year")
+  guidelineType   String?       @map("guideline_type")
+  officialUrl     String?       @map("official_url")
+  researchDesign  String?       @map("research_design") @db.Text
+  majorFindings   String?       @map("major_findings") @db.Text
+  significance    String?       @db.Text
+  keyPoints       Json?         @map("key_points")
+  liuBenRole      String?       @map("liu_ben_role")
+  inclusionEvidence String?     @map("inclusion_evidence") @db.Text
+  dataSource      String?       @map("data_source")
+  dataVerifiedAt  DateTime?     @map("data_verified_at")
   keywords        String[]      @default([])
   keywordsBilingual Json?       @map("keywords_bilingual")
   articleType     String?       @map("article_type")
@@ -78,6 +102,11 @@ model Article {
 
   @@index([specialty, publishDate])
   @@index([impactFactor])
+  @@index([resourceKind])
+  @@index([diseaseArea])
+  @@index([year])
+  @@index([jifStatus])
+  @@index([authorSortKey])
   @@index([isTodayPick])
   @@index([featuredDateKey])
   @@index([lastRecommendedAt])

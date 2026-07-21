@@ -2,7 +2,7 @@ import type { Specialty } from "@prisma/client";
 import { getBeijingDateKey } from "../beijing-time";
 import { prisma } from "../db";
 import { cacheDel } from "../redis";
-import { SPECIALTY_CONFIG } from "../constants";
+import { RESOURCE_KIND, UROLOGY_SPECIALTY } from "../constants";
 import { classifyStudyType } from "../classifier";
 import { fetchPubMedRecent } from "../fetchers/pubmed";
 import { fetchEuropePmcRecent } from "../fetchers/europe-pmc";
@@ -12,7 +12,7 @@ import type { RawPaper } from "../types";
 import { upsertArticleRecord } from "./article-upsert";
 import { selectDailyRecommendation } from "./recommendation";
 
-const ALL_SPECIALTIES = Object.keys(SPECIALTY_CONFIG) as Specialty[];
+const ALL_SPECIALTIES: Specialty[] = [UROLOGY_SPECIALTY];
 
 function dedupePapers(papers: RawPaper[]): RawPaper[] {
   const seen = new Set<string>();
@@ -56,8 +56,7 @@ export async function archiveCurrentTodayPicks(): Promise<number> {
 }
 
 async function fetchAndStoreForSpecialty(
-  specialty: Specialty,
-  todayKey: string
+  specialty: Specialty
 ): Promise<{ fetched: number; accepted: number; failed: number }> {
   const pubmed = await fetchPubMedRecent(specialty);
   const epmc = await fetchEuropePmcRecent(specialty);
@@ -74,6 +73,7 @@ async function fetchAndStoreForSpecialty(
     const studyType = classifyStudyType(paper);
     const articleId = await upsertArticleRecord(paper, ifVal, studyType, {
       asHistory: true,
+      resourceKind: studyType === "BASIC" ? RESOURCE_KIND.BASIC_RESEARCH : RESOURCE_KIND.CLINICAL_RESEARCH,
       runLlm: true,
     });
 
@@ -112,7 +112,7 @@ export async function runDailyFetchPipeline(): Promise<{
   for (const specialty of ALL_SPECIALTIES) {
     const t0 = Date.now();
     try {
-      const r = await fetchAndStoreForSpecialty(specialty, todayKey);
+      const r = await fetchAndStoreForSpecialty(specialty);
       totalFetched += r.fetched;
       totalAccepted += r.accepted;
       totalFailed += r.failed;

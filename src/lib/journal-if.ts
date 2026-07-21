@@ -51,7 +51,6 @@ export async function resolveImpactFactor(journal: string): Promise<number> {
   });
   if (dbHit) return dbHit.impactFactor;
 
-  if (isTopJournalName(journal)) return 20;
   return 0;
 }
 

@@ -100,6 +100,26 @@ export async function fetchPubMedReviewLibrary(
   return fetchPubMedDetails(ids, specialty);
 }
 
+export async function fetchPubMedSearch(
+  term: string,
+  specialty: Specialty,
+  maxResults = 80,
+  retStart = 0,
+  sort: "relevance" | "date" = "relevance"
+): Promise<RawPaper[]> {
+  const searchUrl =
+    `${BASE}/esearch.fcgi?db=pubmed&retmode=json&retmax=${maxResults}` +
+    `&retstart=${retStart}` +
+    `&sort=${sort}&term=${encodeURIComponent(term)}${apiKeyParam()}`;
+
+  const search = await fetchJson<{ esearchresult?: { idlist?: string[] } }>(searchUrl);
+  const ids = search.esearchresult?.idlist ?? [];
+  if (ids.length === 0) return [];
+
+  await sleep(350);
+  return fetchPubMedDetails(ids, specialty);
+}
+
 async function fetchPubMedDetails(ids: string[], specialty: Specialty): Promise<RawPaper[]> {
   const fetchUrl =
     `${BASE}/efetch.fcgi?db=pubmed&retmode=xml&id=${ids.join(",")}${apiKeyParam()}`;

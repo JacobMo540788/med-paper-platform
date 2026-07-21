@@ -1,13 +1,13 @@
 import type { Article, Prisma, Specialty } from "@prisma/client";
 import { getBeijingDateKey } from "../beijing-time";
-import { CORE_LIBRARY_YEARS, CORE_MIN_IMPACT_FACTOR, MIN_IMPACT_FACTOR, SPECIALTY_CONFIG } from "../constants";
+import { CORE_LIBRARY_YEARS, CORE_MIN_IMPACT_FACTOR, MIN_IMPACT_FACTOR, UROLOGY_SPECIALTY } from "../constants";
 import { prisma } from "../db";
 import { cacheDel } from "../redis";
 import { generateAiAnalysisForArticle } from "./ai-analysis";
 
 export type RecommendSource = "daily_new" | "historical" | "core";
 
-const ALL_SPECIALTIES = Object.keys(SPECIALTY_CONFIG) as Specialty[];
+const ALL_SPECIALTIES: Specialty[] = [UROLOGY_SPECIALTY];
 
 function beijingDateRange(dateKey: string) {
   const start = new Date(`${dateKey}T00:00:00+08:00`);
@@ -25,21 +25,8 @@ function daysAgo(days: number) {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
-function prioritySpecialty(date = new Date()): Specialty | null {
-  const weekday = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Shanghai",
-    weekday: "short",
-  }).format(date);
-  const map: Record<string, Specialty | null> = {
-    Mon: "ONCOLOGY_COLORECTAL",
-    Tue: "OPHTHALMOLOGY",
-    Wed: "GASTROENTEROLOGY",
-    Thu: "UROLOGY",
-    Fri: "NEPHROLOGY",
-    Sat: null,
-    Sun: null,
-  };
-  return map[weekday] ?? null;
+function prioritySpecialty(): Specialty {
+  return UROLOGY_SPECIALTY;
 }
 
 function journalPriority(journal: string) {
@@ -146,7 +133,7 @@ export async function selectDailyRecommendation(date = new Date()) {
     };
   }
 
-  const preferredSpecialty = prioritySpecialty(date);
+  const preferredSpecialty = prioritySpecialty();
   const { start } = beijingDateRange(dateKey);
   const recentLimit = daysAgo(90);
   const coreRecentLimit = daysAgo(180);
@@ -154,6 +141,7 @@ export async function selectDailyRecommendation(date = new Date()) {
 
   const base: Prisma.ArticleWhereInput = {
     verificationStatus: "VERIFIED",
+    specialty: { in: ALL_SPECIALTIES },
     impactFactor: { gt: MIN_IMPACT_FACTOR },
     AND: [{ OR: [{ lastRecommendedAt: null }, { lastRecommendedAt: { lt: recentLimit } }] }],
   };
@@ -209,6 +197,7 @@ export async function selectDailyRecommendation(date = new Date()) {
   const core = await pickBest(
     {
       verificationStatus: "VERIFIED",
+      specialty: { in: ALL_SPECIALTIES },
       isCoreLibrary: true,
       impactFactor: { gte: CORE_MIN_IMPACT_FACTOR },
       publishDate: { gte: yearsAgo(CORE_LIBRARY_YEARS) },

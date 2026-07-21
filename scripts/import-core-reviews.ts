@@ -1,13 +1,13 @@
 import type { Specialty } from "@prisma/client";
 import { PrismaClient } from "@prisma/client";
 import { classifyStudyType } from "../src/lib/classifier";
-import { CORE_LIBRARY_YEARS, CORE_MIN_IMPACT_FACTOR, SPECIALTY_CONFIG } from "../src/lib/constants";
+import { CORE_LIBRARY_YEARS, CORE_MIN_IMPACT_FACTOR, RESOURCE_KIND, SPECIALTY_CONFIG } from "../src/lib/constants";
 import { fetchPubMedReviewLibrary } from "../src/lib/fetchers/pubmed";
 import { resolveImpactFactor } from "../src/lib/journal-if";
 import { upsertArticleRecord } from "../src/lib/pipeline/article-upsert";
 
 const prisma = new PrismaClient();
-const specialties = Object.keys(SPECIALTY_CONFIG) as Specialty[];
+const specialties = (Object.keys(SPECIALTY_CONFIG) as Specialty[]).filter((s) => SPECIALTY_CONFIG[s].active);
 const pageSize = Number(process.argv.find((arg) => arg.startsWith("--page-size="))?.split("=")[1] ?? "80");
 const pages = Number(process.argv.find((arg) => arg.startsWith("--pages="))?.split("=")[1] ?? "4");
 
@@ -64,6 +64,7 @@ async function main() {
         studyType,
         {
           asCoreLibrary: true,
+          resourceKind: studyType === "BASIC" ? RESOURCE_KIND.BASIC_RESEARCH : RESOURCE_KIND.CLINICAL_RESEARCH,
           runLlm: true,
         }
       );

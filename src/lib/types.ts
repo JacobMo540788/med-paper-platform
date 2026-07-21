@@ -42,7 +42,15 @@ export interface ArticleCardDTO {
   specialty: Specialty;
   studyType: StudyType;
   impactFactor: number;
+  jifStatus?: string | null;
+  jifYear?: number | null;
   journal: string;
+  resourceKind?: string | null;
+  diseaseArea?: string | null;
+  organization?: string | null;
+  firstAuthor?: string | null;
+  doi?: string | null;
+  pmid?: string | null;
   publishDate: string;
   keywords: string[];
   aiSummary: string | null;

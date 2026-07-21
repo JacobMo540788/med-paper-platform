@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Specialty, StudyType } from "@prisma/client";
-import { searchArticles } from "@/lib/articles";
+import { parseResourceSearchParams, searchUrologyResources } from "@/lib/urology-resources";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const sp = req.nextUrl.searchParams;
   try {
-    const result = await searchArticles({
-      q: sp.get("q") ?? undefined,
-      specialty: (sp.get("specialty") as Specialty) || undefined,
-      studyType: (sp.get("studyType") as StudyType) || undefined,
-      minIf: sp.get("minIf") ? parseFloat(sp.get("minIf")!) : undefined,
-      page: sp.get("page") ? parseInt(sp.get("page")!, 10) : 1,
-      limit: sp.get("limit") ? parseInt(sp.get("limit")!, 10) : 20,
-    });
+    const params = parseResourceSearchParams(req.nextUrl.searchParams);
+    const result = await searchUrologyResources({ ...params, resourceKind: params.resourceKind ?? "ALL" });
     return NextResponse.json({ success: true, ...result });
   } catch (e) {
     return NextResponse.json(

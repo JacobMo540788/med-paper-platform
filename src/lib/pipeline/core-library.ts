@@ -1,5 +1,5 @@
 import type { Specialty } from "@prisma/client";
-import { CORE_LIBRARY_YEARS, SPECIALTY_CONFIG } from "../constants";
+import { CORE_LIBRARY_YEARS, RESOURCE_KIND, SPECIALTY_CONFIG } from "../constants";
 import { classifyStudyType } from "../classifier";
 import { fetchPubMedCoreLibrary } from "../fetchers/pubmed";
 import { enrichFromCrossref, parseCrossrefAuthors, parseCrossrefDate } from "../fetchers/crossref";
@@ -8,7 +8,6 @@ import {
   passesCoreIfFilter,
   resolveImpactFactor,
 } from "../journal-if";
-import { prisma } from "../db";
 import type { RawPaper } from "../types";
 import { upsertArticleRecord } from "./article-upsert";
 
@@ -70,6 +69,7 @@ export async function runCoreLibrarySyncForSpecialty(specialty: Specialty): Prom
     const studyType = classifyStudyType(paper);
     const articleId = await upsertArticleRecord(paper, ifVal, studyType, {
       asCoreLibrary: true,
+      resourceKind: studyType === "BASIC" ? RESOURCE_KIND.BASIC_RESEARCH : RESOURCE_KIND.CLINICAL_RESEARCH,
       runLlm: !process.env.SKIP_CORE_LLM,
     });
     if (articleId) accepted++;
@@ -79,7 +79,7 @@ export async function runCoreLibrarySyncForSpecialty(specialty: Specialty): Prom
 }
 
 export async function runCoreLibrarySyncAll(): Promise<{ totalAccepted: number }> {
-  const specialties = Object.keys(SPECIALTY_CONFIG) as Specialty[];
+  const specialties = (Object.keys(SPECIALTY_CONFIG) as Specialty[]).filter((s) => SPECIALTY_CONFIG[s].active);
 
   let totalAccepted = 0;
   for (const specialty of specialties) {

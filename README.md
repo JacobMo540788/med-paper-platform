@@ -1,59 +1,39 @@
-# MedFrontier 医学前沿文献平台
+# MedFrontier 泌尿外科指南与研究证据平台
 
-MedFrontier 会从 PubMed、Europe PMC 和 CrossRef 抓取医学论文，校验 PMID/DOI/期刊/发表时间等真实元数据，并按影响因子、科室和研究类型整理为首页推荐、历史文献库和核心文献库。
+MedFrontier 专注泌尿外科临床指南、临床研究、基础研究和刘犇教授课题组成果。平台复用 PubMed、Europe PMC、CrossRef、Prisma 和 Next.js 数据流程，所有公开记录都必须通过 DOI、PMID、机构官网或正式出版页面核验。
 
-## 当前规则
+## 核心规则
 
-- 收录科室：肿瘤科（结直肠）、眼科、消化内科、泌尿外科、肾内科。
-- 首页每天只推荐 1 篇文章。
-- 新文献和历史文献门槛：IF > 15。
-- 核心文献库门槛：近 15 年，IF >= 15，以真实期刊 IF 映射为准。
-- AI 只负责翻译、摘要和结构化分析，不允许生成 DOI、PMID、期刊名、发表日期或 IF。
+- 网站定位：泌尿外科指南与研究证据平台。
+- 时间窗：近5年为滚动窗口，从执行当天向前推5年，代码动态计算。
+- 临床研究与基础研究：正式列表要求 JIF >= 10，且 JIF 状态为 `VERIFIED`。
+- 指南：不虚构 IF；无期刊 JIF 时标记 `IF 不适用` 或 `IF 待核验`。
+- JIF：仅指 Clarivate Journal Citation Reports 的 Journal Impact Factor。
+- 刘犇教授课题组：导入前必须完成作者身份消歧；缺少英文名变体、单位、ORCID 或主页时不自动导入。
 
-## 每日推荐逻辑
+## 主要页面
 
-每日推荐任务按北京时间 07:00 执行，顺序如下：
+- `/` 首页资源总览
+- `/guidelines` 临床指南
+- `/clinical-research` 临床研究
+- `/basic-research` 基础研究
+- `/liu-ben-lab` 刘犇教授课题组
+- `/search` 全站搜索
+- `/about` 关于
 
-1. 优先选择过去 24 小时新抓取或新发表的高 IF 文献。
-2. 当天没有合格新文献时，从近 10 年历史文献库中选择 1 篇。
-3. 历史库也没有合适文章时，从核心文献库中选择 1 篇经典文献重读。
+旧学科路由已废弃：`/specialty/urology` 会重定向到临床研究，其它旧学科返回 404。
 
-科室轮换：
+## 常用命令
 
-- 周一：肿瘤科（结直肠）
-- 周二：眼科
-- 周三：消化内科
-- 周四：泌尿外科
-- 周五：肾内科
-- 周六：全科室综合最高分
-- 周日：核心文献重读
-
-推荐记录会写入 `DailyRecommendation` 表，并更新文章的 `lastRecommendedAt`、`recommendCount` 和 `recommendSource`，避免短期重复推荐。
-
-## 常用接口
-
-- `GET /api/recommendation/today`：查看今日推荐。
-- `POST /api/jobs/run-daily-recommendation`：手动触发每日推荐选择。
-- `GET /api/recommendation/history`：分页查看每日推荐历史。
-- `POST /api/cron/daily-fetch?secret=CRON_SECRET`：手动触发每日抓取和推荐流程。
-
-## 本地运行
-
-PowerShell 如果禁止运行 `npm.ps1`，请使用 `npm.cmd`。
+PowerShell 禁止 `npm.ps1` 时，请使用 `npm.cmd`。
 
 ```bash
 npm.cmd install
 npm.cmd run db:generate
-npm.cmd run dev
-```
-
-常用维护命令：
-
-```bash
-npm.cmd run import:core-reviews -- --page-size=80 --pages=4
+npm.cmd run import:urology-resources -- --page-size=80 --pages=2
 npm.cmd run repair:impact-factors
-npm.cmd run generate:ai-analysis -- --limit=10
 npm.cmd run test:verification
+npm.cmd run test:urology
 npm.cmd run build
 ```
 
@@ -67,11 +47,17 @@ NEXT_PUBLIC_SITE_URL=https://med-paper-platform.netlify.app
 LLM_API_BASE=https://api.deepseek.com
 LLM_API_KEY=your-deepseek-key
 LLM_MODEL=deepseek-chat
+
+# 刘犇教授课题组导入前必须补充
+LIU_BEN_AUTHOR_VARIANTS=
+LIU_BEN_AFFILIATION=
+LIU_BEN_ORCID=
+LIU_BEN_PROFILE_URL=
 ```
 
-## 部署提醒
+## 数据库迁移
 
-Netlify 构建只执行 `prisma generate && next build`，不会自动修改数据库结构。新增迁移后，需要先对 Neon 数据库执行：
+Netlify 构建只执行 `prisma generate && next build`，不会自动修改数据库结构。新增迁移后需要先对 Neon 执行：
 
 ```bash
 npx.cmd prisma migrate deploy
@@ -79,4 +65,4 @@ npx.cmd prisma migrate deploy
 
 ## 医学内容声明
 
-本站内容来自公开学术数据库，并经过程序化真实性校验和 AI 辅助整理，仅用于科研学习参考，不构成医疗诊断或治疗建议。
+本站内容仅供科研与学术参考，不构成医疗诊断或治疗建议。AI 只用于翻译、摘要和结构化分析，不生成 DOI、PMID、作者、期刊、发布日期或影响因子。

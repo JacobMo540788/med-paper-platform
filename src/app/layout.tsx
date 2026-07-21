@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_SUBTITLE } from "@/lib/constants";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -9,18 +10,18 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "MedFrontier | 医学前沿研究自动推送",
-    template: "%s | MedFrontier",
+    default: `${SITE_NAME} | ${SITE_SUBTITLE}`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "每日自动推送肿瘤科、眼科、消化内科、泌尿外科、肾内科高影响因子医学前沿论文，含 AI 智能分析与中英双语摘要。",
+  description: SITE_DESCRIPTION,
+  keywords: ["泌尿外科", "临床指南", "临床研究", "基础研究", "Journal Impact Factor", "PubMed"],
   openGraph: {
     type: "website",
     locale: "zh_CN",
     url: siteUrl,
-    siteName: "MedFrontier",
-    title: "MedFrontier | 医学前沿研究自动推送",
-    description: "高 IF 医学论文每日精选 · AI 分析 · 中英双语",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} | ${SITE_SUBTITLE}`,
+    description: SITE_DESCRIPTION,
   },
   robots: { index: true, follow: true },
 };

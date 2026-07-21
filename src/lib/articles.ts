@@ -13,7 +13,15 @@ export function toCardDTO(a: {
   specialty: Specialty;
   studyType: StudyType;
   impactFactor: number;
+  jifStatus?: string | null;
+  jifYear?: number | null;
   journal: string;
+  resourceKind?: string | null;
+  diseaseArea?: string | null;
+  organization?: string | null;
+  firstAuthor?: string | null;
+  doi?: string | null;
+  pmid?: string | null;
   publishDate: Date;
   keywords: string[];
   aiSummary: string | null;
@@ -29,7 +37,15 @@ export function toCardDTO(a: {
     specialty: a.specialty,
     studyType: a.studyType,
     impactFactor: a.impactFactor,
+    jifStatus: a.jifStatus ?? "VERIFIED",
+    jifYear: a.jifYear ?? null,
     journal: a.journal,
+    resourceKind: a.resourceKind ?? null,
+    diseaseArea: a.diseaseArea ?? null,
+    organization: a.organization ?? null,
+    firstAuthor: a.firstAuthor ?? null,
+    doi: a.doi ?? null,
+    pmid: a.pmid ?? null,
     publishDate: a.publishDate.toISOString(),
     keywords: a.keywords,
     aiSummary: a.aiSummary,

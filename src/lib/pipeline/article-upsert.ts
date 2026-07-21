@@ -1,10 +1,10 @@
-import type { StudyType } from "@prisma/client";
 import { prisma } from "../db";
 import { classifyStudyType } from "../classifier";
 import { runFullLlmPipeline } from "../llm/analyzer";
 import { decodeHtmlEntities } from "../html";
 import type { RawPaper } from "../types";
 import { mergeVerifiedData, verifyArticle } from "../validation/article-verifier";
+import { RESOURCE_KIND, type ResourceKind } from "../constants";
 
 export interface UpsertArticleOptions {
   asTodayPick?: boolean;
@@ -12,6 +12,17 @@ export interface UpsertArticleOptions {
   asCoreLibrary?: boolean;
   asHistory?: boolean;
   runLlm?: boolean;
+  resourceKind?: ResourceKind;
+  diseaseArea?: string | null;
+  organization?: string | null;
+  organizationShortName?: string | null;
+  officialUrl?: string | null;
+  guidelineType?: string | null;
+  versionYear?: number | null;
+  jifStatus?: string;
+  jifYear?: number | null;
+  jifSource?: string | null;
+  inclusionEvidence?: string | null;
 }
 
 export async function upsertArticleRecord(
@@ -41,6 +52,8 @@ export async function upsertArticleRecord(
   const verifiedPaper = mergeVerifiedData(paper, verification.verifiedData, verification.sourceUrl);
   const cleanAbstract = verifiedPaper.abstract ? decodeHtmlEntities(verifiedPaper.abstract) : null;
   const cleanTitle = decodeHtmlEntities(verifiedPaper.titleEn);
+  const firstAuthor = verifiedPaper.authors[0] ?? null;
+  const resourceKind = options.resourceKind ?? RESOURCE_KIND.CLINICAL_RESEARCH;
 
   const existing = await prisma.article.findFirst({
     where: {
@@ -88,12 +101,29 @@ export async function upsertArticleRecord(
     abstractCn,
     journal: verifiedPaper.journal,
     impactFactor,
+    jifStatus: options.jifStatus ?? "VERIFIED",
+    jifYear: options.jifYear ?? 2024,
+    jifSource: options.jifSource ?? "local JCR whitelist",
+    jifVerifiedAt: new Date(),
     doi: verifiedPaper.doi ?? null,
     pmid: verifiedPaper.pmid ?? null,
     authors: verifiedPaper.authors,
+    firstAuthor,
+    authorSortKey: authorSortKey(firstAuthor),
     publishDate: verifiedPaper.publishDate,
+    year: verifiedPaper.publishDate.getFullYear(),
     specialty: verifiedPaper.specialty,
     studyType,
+    resourceKind,
+    diseaseArea: options.diseaseArea ?? inferUrologyDiseaseArea(cleanTitle, cleanAbstract),
+    organization: options.organization ?? null,
+    organizationShortName: options.organizationShortName ?? null,
+    officialUrl: options.officialUrl ?? null,
+    guidelineType: options.guidelineType ?? null,
+    versionYear: options.versionYear ?? null,
+    inclusionEvidence: options.inclusionEvidence ?? null,
+    dataSource: verification.verifiedData.sourceProvider,
+    dataVerifiedAt: new Date(),
     keywords: verifiedPaper.keywords,
     keywordsBilingual: keywordsBilingual ?? undefined,
     articleType: verifiedPaper.articleType ?? null,
@@ -157,4 +187,37 @@ async function markExistingArticleFailed(paper: RawPaper, error: string) {
       isCoreLibrary: false,
     },
   });
+}
+
+function inferUrologyDiseaseArea(title: string, abstract?: string | null) {
+  const text = `${title} ${abstract ?? ""}`.toLowerCase();
+  if (/prostate|psma|castration-resistant/.test(text)) return "前列腺癌";
+  if (/bladder|urothelial carcinoma/.test(text)) return "膀胱癌";
+  if (/renal cell|kidney cancer|renal cancer/.test(text)) return "肾癌";
+  if (/upper tract urothelial/.test(text)) return "上尿路尿路上皮癌";
+  if (/testicular|penile/.test(text)) return "睾丸癌及阴茎癌";
+  if (/benign prostatic hyperplasia|lower urinary tract symptoms|\bluts\b/.test(text)) {
+    return "良性前列腺增生与男性下尿路症状";
+  }
+  if (/urolithiasis|urinary stone|kidney stone|ureteral stone/.test(text)) return "泌尿系结石";
+  if (/urinary tract infection|\buti\b/.test(text)) return "尿路感染";
+  if (/incontinence|female urology/.test(text)) return "尿失禁与女性泌尿";
+  if (/neuro-urology|neurogenic/.test(text)) return "神经泌尿";
+  if (/infertility|erectile|andrology/.test(text)) return "男科、男性不育与性功能障碍";
+  if (/trauma|reconstruction|urethral/.test(text)) return "泌尿系统创伤与重建";
+  if (/pediatric|paediatric|children/.test(text)) return "儿童泌尿";
+  if (/transplant/.test(text)) return "肾移植及其他泌尿外科相关疾病";
+  return "肾移植及其他泌尿外科相关疾病";
+}
+
+function authorSortKey(author?: string | null) {
+  if (!author?.trim()) return null;
+  const normalized = author
+    .normalize("NFKD")
+    .replace(/[^\p{Letter}\p{Number}\s-]/gu, "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return null;
+  const parts = normalized.split(/\s+/);
+  return parts.length > 1 ? `${parts[parts.length - 1]} ${parts.slice(0, -1).join(" ")}` : normalized;
 }

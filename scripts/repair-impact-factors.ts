@@ -32,6 +32,8 @@ async function main() {
       id: true,
       journal: true,
       impactFactor: true,
+      resourceKind: true,
+      jifStatus: true,
       isCoreLibrary: true,
       isTodayPick: true,
     },
@@ -43,9 +45,16 @@ async function main() {
 
   for (const article of articles) {
     const impactFactor = await resolveImpactFactor(article.journal);
+    const hasVerifiedJif = impactFactor > 0;
+    const jifStatus =
+      hasVerifiedJif ? "VERIFIED" : article.resourceKind === "GUIDELINE" ? "NOT_APPLICABLE" : "PENDING";
 
     const data = {
       impactFactor,
+      jifStatus,
+      jifYear: hasVerifiedJif ? 2024 : null,
+      jifSource: hasVerifiedJif ? "local JCR whitelist" : null,
+      jifVerifiedAt: hasVerifiedJif ? new Date() : null,
       ...(article.isCoreLibrary && impactFactor < CORE_MIN_IMPACT_FACTOR
         ? { isCoreLibrary: false, coreAddedAt: null }
         : {}),
@@ -56,6 +65,7 @@ async function main() {
 
     if (
       impactFactor !== article.impactFactor ||
+      jifStatus !== article.jifStatus ||
       (article.isCoreLibrary && impactFactor < CORE_MIN_IMPACT_FACTOR) ||
       (article.isTodayPick && impactFactor < MIN_IMPACT_FACTOR)
     ) {

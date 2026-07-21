@@ -3,4 +3,4 @@
   publish = ".next"
 
 [functions."daily-fetch"]
-  schedule = "0 23 * * *"
+  schedule = "0 23 * * 0"
