@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getArticleById, getRelatedArticles } from "@/lib/articles";
+import { PIPELINE_STATUS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export async function GET(
   const { id } = await params;
   try {
     const article = await getArticleById(id);
-    if (!article || article.verificationStatus !== "VERIFIED") {
+    if (!article || article.verificationStatus !== "VERIFIED" || article.pipelineStatus !== PIPELINE_STATUS.PUBLISHED) {
       return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
     }
     const related = await getRelatedArticles(id, article.specialty);

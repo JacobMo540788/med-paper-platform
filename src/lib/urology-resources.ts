@@ -3,6 +3,7 @@ import { prisma } from "./db";
 import { toCardDTO } from "./articles";
 import {
   GUIDELINE_WINDOW_YEARS,
+  PIPELINE_STATUS,
   RESOURCE_KIND,
   RESEARCH_MIN_JIF,
   ROLLING_WINDOW_YEARS,
@@ -96,6 +97,7 @@ function baseWhere(params: ResourceSearchParams): Prisma.ArticleWhereInput {
   const where: Prisma.ArticleWhereInput = {
     specialty: UROLOGY_SPECIALTY,
     verificationStatus: "VERIFIED",
+    pipelineStatus: PIPELINE_STATUS.PUBLISHED,
   };
 
   if (params.resourceKind && params.resourceKind !== "ALL") {
@@ -215,6 +217,7 @@ export async function getUrologyOverview() {
         specialty: UROLOGY_SPECIALTY,
         resourceKind: RESOURCE_KIND.GUIDELINE,
         verificationStatus: "VERIFIED",
+        pipelineStatus: PIPELINE_STATUS.PUBLISHED,
         publishDate: { gte: fiveYearStart },
       },
     }),
@@ -223,6 +226,7 @@ export async function getUrologyOverview() {
         specialty: UROLOGY_SPECIALTY,
         resourceKind: RESOURCE_KIND.CLINICAL_RESEARCH,
         verificationStatus: "VERIFIED",
+        pipelineStatus: PIPELINE_STATUS.PUBLISHED,
         publishDate: { gte: fiveYearStart },
         impactFactor: { gte: RESEARCH_MIN_JIF },
         jifStatus: "VERIFIED",
@@ -233,6 +237,7 @@ export async function getUrologyOverview() {
         specialty: UROLOGY_SPECIALTY,
         resourceKind: RESOURCE_KIND.BASIC_RESEARCH,
         verificationStatus: "VERIFIED",
+        pipelineStatus: PIPELINE_STATUS.PUBLISHED,
         publishDate: { gte: fiveYearStart },
         impactFactor: { gte: RESEARCH_MIN_JIF },
         jifStatus: "VERIFIED",
@@ -243,11 +248,12 @@ export async function getUrologyOverview() {
         specialty: UROLOGY_SPECIALTY,
         resourceKind: RESOURCE_KIND.LIU_BEN_LAB,
         verificationStatus: "VERIFIED",
+        pipelineStatus: PIPELINE_STATUS.PUBLISHED,
         publishDate: { gte: fiveYearStart },
       },
     }),
     prisma.article.findFirst({
-      where: { specialty: UROLOGY_SPECIALTY, verificationStatus: "VERIFIED" },
+      where: { specialty: UROLOGY_SPECIALTY, verificationStatus: "VERIFIED", pipelineStatus: PIPELINE_STATUS.PUBLISHED },
       orderBy: { updatedAt: "desc" },
       select: { updatedAt: true },
     }),

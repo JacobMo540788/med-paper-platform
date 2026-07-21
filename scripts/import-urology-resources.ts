@@ -117,12 +117,6 @@ async function importKind(kind: ResourceKind, label: string, term: string) {
 }
 
 async function main() {
-  if (!process.env.LIU_BEN_AUTHOR_VARIANTS || !process.env.LIU_BEN_AFFILIATION) {
-    console.log(
-      "[liu-ben-lab] skipped: missing LIU_BEN_AUTHOR_VARIANTS and/or LIU_BEN_AFFILIATION. Author disambiguation is required before import."
-    );
-  }
-
   const results = [];
   for (const q of QUERIES) {
     results.push(await importKind(q.kind, q.label, q.term));

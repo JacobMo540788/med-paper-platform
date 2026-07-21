@@ -9,7 +9,7 @@ MedFrontier 专注泌尿外科临床指南、临床研究、基础研究和刘�
 - 临床研究与基础研究：正式列表要求 JIF >= 10，且 JIF 状态为 `VERIFIED`。
 - 指南：不虚构 IF；无期刊 JIF 时标记 `IF 不适用` 或 `IF 待核验`。
 - JIF：仅指 Clarivate Journal Citation Reports 的 Journal Impact Factor。
-- 刘犇教授课题组：导入前必须完成作者身份消歧；缺少英文名变体、单位、ORCID 或主页时不自动导入。
+- 刘犇教授课题组：只导入 `data/liu-ben-lab-disambiguation.json` 中经过人工确认、且具有 DOI/PMID 与单位、邮箱或共同作者网络证据的记录；禁止根据短姓名自动合并。
 
 ## 主要页面
 
@@ -31,6 +31,7 @@ PowerShell 禁止 `npm.ps1` 时，请使用 `npm.cmd`。
 npm.cmd install
 npm.cmd run db:generate
 npm.cmd run import:urology-resources -- --page-size=80 --pages=2
+npm.cmd run import:liu-ben-lab
 npm.cmd run repair:impact-factors
 npm.cmd run test:verification
 npm.cmd run test:urology
@@ -48,11 +49,6 @@ LLM_API_BASE=https://api.deepseek.com
 LLM_API_KEY=your-deepseek-key
 LLM_MODEL=deepseek-chat
 
-# 刘犇教授课题组导入前必须补充
-LIU_BEN_AUTHOR_VARIANTS=
-LIU_BEN_AFFILIATION=
-LIU_BEN_ORCID=
-LIU_BEN_PROFILE_URL=
 ```
 
 ## 数据库迁移

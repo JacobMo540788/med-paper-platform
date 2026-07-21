@@ -3,20 +3,22 @@ import type { Specialty, StudyType } from "@prisma/client";
 export const SITE_NAME = "MedFrontier";
 export const SITE_SUBTITLE = "泌尿外科指南与研究证据平台";
 export const SITE_DESCRIPTION =
-  "MedFrontier 专注泌尿外科临床指南、临床研究、基础研究和刘犇教授课题组成果，所有论文元数据均需通过可核验来源确认。";
+  "MedFrontier 专注泌尿外科临床指南、临床研究、基础研究和刘犇教授课题组成果，所有公开文献元数据均需通过可核验来源确认。";
 
 export const UROLOGY_SPECIALTY: Specialty = "UROLOGY";
 export const RESEARCH_MIN_JIF = 10;
 export const ROLLING_WINDOW_YEARS = 5;
 export const GUIDELINE_WINDOW_YEARS = 5;
-export const WEEKLY_UPDATE_CRON = "0 7 * * 1";
+export const WEEKLY_UPDATE_CRON_UTC = "0 18 * * 6";
+export const WEEKLY_UPDATE_CRON = WEEKLY_UPDATE_CRON_UTC;
 export const BEIJING_TIMEZONE = "Asia/Shanghai";
+export const WEEKLY_OVERLAP_DAYS = 14;
+export const DEEPSEEK_PROMPT_VERSION = "urology-content-review-v1";
 
-// Legacy thresholds kept for older scripts that still import these names.
 export const MIN_IMPACT_FACTOR = RESEARCH_MIN_JIF;
 export const CORE_MIN_IMPACT_FACTOR = RESEARCH_MIN_JIF;
 export const CORE_LIBRARY_YEARS = ROLLING_WINDOW_YEARS;
-export const DAILY_UPDATE_CRON = WEEKLY_UPDATE_CRON;
+export const DAILY_UPDATE_CRON = WEEKLY_UPDATE_CRON_UTC;
 
 export const RESOURCE_KIND = {
   GUIDELINE: "GUIDELINE",
@@ -33,6 +35,21 @@ export const RESOURCE_KIND_LABEL: Record<ResourceKind, string> = {
   BASIC_RESEARCH: "基础研究",
   LIU_BEN_LAB: "刘犇教授课题组",
 };
+
+export const PIPELINE_STATUS = {
+  DISCOVERED: "DISCOVERED",
+  METADATA_VERIFIED: "METADATA_VERIFIED",
+  CONTENT_REVIEWED: "CONTENT_REVIEWED",
+  JIF_VERIFIED: "JIF_VERIFIED",
+  PUBLISHED: "PUBLISHED",
+  MANUAL_REVIEW: "MANUAL_REVIEW",
+  REJECTED: "REJECTED",
+  RETRACTED: "RETRACTED",
+  DUPLICATE: "DUPLICATE",
+  SOURCE_ERROR: "SOURCE_ERROR",
+} as const;
+
+export type PipelineStatus = (typeof PIPELINE_STATUS)[keyof typeof PIPELINE_STATUS];
 
 export const RESOURCE_NAV = [
   { href: "/", label: "首页" },
@@ -75,7 +92,7 @@ export const SPECIALTY_CONFIG: Record<
     slug: "urology",
     active: true,
     pubmedQuery:
-      '(urology[Title/Abstract] OR urologic[Title/Abstract] OR urological[Title/Abstract] OR prostate cancer[Title/Abstract] OR bladder cancer[Title/Abstract] OR renal cell carcinoma[Title/Abstract] OR kidney cancer[Title/Abstract] OR upper tract urothelial carcinoma[Title/Abstract] OR testicular cancer[Title/Abstract] OR penile cancer[Title/Abstract] OR benign prostatic hyperplasia[Title/Abstract] OR lower urinary tract symptoms[Title/Abstract] OR urinary stone[Title/Abstract] OR urolithiasis[Title/Abstract] OR urinary tract infection[Title/Abstract] OR urinary incontinence[Title/Abstract] OR neuro-urology[Title/Abstract] OR male infertility[Title/Abstract] OR erectile dysfunction[Title/Abstract] OR renal transplantation[Title/Abstract])',
+      '(urology[Title/Abstract] OR urologic[Title/Abstract] OR urological[Title/Abstract] OR "Urologic Diseases"[Mesh] OR prostate[Title/Abstract] OR bladder[Title/Abstract] OR "renal cell carcinoma"[Title/Abstract] OR "upper tract urothelial"[Title/Abstract] OR testicular[Title/Abstract] OR penile[Title/Abstract] OR urolithiasis[Title/Abstract] OR "urinary tract infection"[Title/Abstract] OR "urinary incontinence"[Title/Abstract] OR neuro-urology[Title/Abstract] OR "erectile dysfunction"[Title/Abstract] OR "male infertility"[Title/Abstract])',
   },
   NEPHROLOGY: {
     label: "肾内科",
@@ -100,7 +117,8 @@ export const UROLOGY_DISEASE_AREAS = [
   "膀胱癌",
   "肾癌",
   "上尿路尿路上皮癌",
-  "睾丸癌及阴茎癌",
+  "睾丸癌",
+  "阴茎癌",
   "良性前列腺增生与男性下尿路症状",
   "泌尿系结石",
   "尿路感染",
@@ -110,6 +128,167 @@ export const UROLOGY_DISEASE_AREAS = [
   "泌尿系统创伤与重建",
   "儿童泌尿",
   "肾移植及其他泌尿外科相关疾病",
+] as const;
+
+export interface UrologyQueryGroup {
+  id: string;
+  diseaseArea: (typeof UROLOGY_DISEASE_AREAS)[number];
+  mesh: string[];
+  keywords: string[];
+  abbreviations?: string[];
+  basicKeywords?: string[];
+}
+
+export const UROLOGY_QUERY_GROUPS: UrologyQueryGroup[] = [
+  {
+    id: "prostate-cancer",
+    diseaseArea: "前列腺癌",
+    mesh: ["Prostatic Neoplasms"],
+    keywords: ["prostate cancer", "prostatic cancer", "castration-resistant prostate cancer"],
+    abbreviations: ["PCa", "mCRPC", "nmCRPC", "PSMA"],
+    basicKeywords: ["androgen receptor", "AR signaling", "PTEN", "TMPRSS2"],
+  },
+  {
+    id: "bladder-cancer",
+    diseaseArea: "膀胱癌",
+    mesh: ["Urinary Bladder Neoplasms"],
+    keywords: ["bladder cancer", "bladder carcinoma", "urothelial bladder cancer"],
+    abbreviations: ["NMIBC", "MIBC", "BCG"],
+    basicKeywords: ["FGFR3", "cisplatin resistance", "tumor microenvironment"],
+  },
+  {
+    id: "kidney-cancer",
+    diseaseArea: "肾癌",
+    mesh: ["Kidney Neoplasms", "Carcinoma, Renal Cell"],
+    keywords: ["kidney cancer", "renal cancer", "renal cell carcinoma", "clear cell renal cell carcinoma"],
+    abbreviations: ["RCC", "ccRCC"],
+    basicKeywords: ["VHL", "HIF", "pazopanib", "sunitinib"],
+  },
+  {
+    id: "upper-tract-urothelial",
+    diseaseArea: "上尿路尿路上皮癌",
+    mesh: ["Ureteral Neoplasms", "Kidney Pelvis Neoplasms"],
+    keywords: ["upper tract urothelial carcinoma", "ureteral cancer", "renal pelvis cancer"],
+    abbreviations: ["UTUC"],
+  },
+  {
+    id: "testicular-cancer",
+    diseaseArea: "睾丸癌",
+    mesh: ["Testicular Neoplasms"],
+    keywords: ["testicular cancer", "testicular neoplasm", "germ cell tumor"],
+    abbreviations: ["GCT"],
+  },
+  {
+    id: "penile-cancer",
+    diseaseArea: "阴茎癌",
+    mesh: ["Penile Neoplasms"],
+    keywords: ["penile cancer", "penile carcinoma"],
+  },
+  {
+    id: "bph-luts",
+    diseaseArea: "良性前列腺增生与男性下尿路症状",
+    mesh: ["Prostatic Hyperplasia", "Lower Urinary Tract Symptoms"],
+    keywords: ["benign prostatic hyperplasia", "lower urinary tract symptoms", "male LUTS"],
+    abbreviations: ["BPH", "LUTS"],
+  },
+  {
+    id: "urolithiasis",
+    diseaseArea: "泌尿系结石",
+    mesh: ["Urolithiasis", "Kidney Calculi", "Ureteral Calculi"],
+    keywords: ["urolithiasis", "urinary stone", "kidney stone", "ureteral stone", "nephrolithiasis"],
+  },
+  {
+    id: "urinary-tract-infection",
+    diseaseArea: "尿路感染",
+    mesh: ["Urinary Tract Infections"],
+    keywords: ["urinary tract infection", "recurrent UTI", "complicated UTI", "pyelonephritis", "cystitis"],
+    abbreviations: ["UTI", "rUTI"],
+  },
+  {
+    id: "female-urology-incontinence",
+    diseaseArea: "尿失禁与女性泌尿",
+    mesh: ["Urinary Incontinence", "Pelvic Floor Disorders"],
+    keywords: ["urinary incontinence", "stress urinary incontinence", "female urology", "overactive bladder"],
+    abbreviations: ["SUI", "OAB"],
+  },
+  {
+    id: "neuro-urology",
+    diseaseArea: "神经泌尿",
+    mesh: ["Neurogenic Urinary Bladder"],
+    keywords: ["neuro-urology", "neurogenic bladder", "spinal cord injury bladder"],
+  },
+  {
+    id: "andrology-infertility",
+    diseaseArea: "男科、男性不育与性功能障碍",
+    mesh: ["Male Infertility", "Erectile Dysfunction"],
+    keywords: ["male infertility", "erectile dysfunction", "andrology", "sexual dysfunction"],
+    abbreviations: ["ED"],
+  },
+  {
+    id: "trauma-reconstruction",
+    diseaseArea: "泌尿系统创伤与重建",
+    mesh: ["Urogenital Surgical Procedures", "Urethral Stricture"],
+    keywords: ["urologic trauma", "urethral stricture", "urethroplasty", "urinary reconstruction"],
+  },
+  {
+    id: "pediatric-urology",
+    diseaseArea: "儿童泌尿",
+    mesh: ["Urologic Diseases", "Pediatrics"],
+    keywords: ["pediatric urology", "paediatric urology", "hypospadias", "vesicoureteral reflux"],
+    abbreviations: ["VUR"],
+  },
+  {
+    id: "transplant-regeneration",
+    diseaseArea: "肾移植及其他泌尿外科相关疾病",
+    mesh: ["Kidney Transplantation", "Tissue Engineering"],
+    keywords: ["kidney transplantation", "urologic regeneration", "urinary tract tissue engineering", "bioengineering"],
+  },
+];
+
+export const CLINICAL_STUDY_TERMS = [
+  "randomized",
+  "clinical trial",
+  "phase II",
+  "phase III",
+  "prospective",
+  "retrospective",
+  "cohort",
+  "real-world",
+  "systematic review",
+  "meta-analysis",
+  "survival",
+  "progression-free",
+  "overall survival",
+];
+
+export const BASIC_STUDY_TERMS = [
+  "mechanism",
+  "molecular",
+  "cell line",
+  "organoid",
+  "mouse",
+  "mice",
+  "animal model",
+  "single-cell",
+  "transcriptomic",
+  "proteomic",
+  "metabolomic",
+  "tumor microenvironment",
+  "preclinical",
+  "biomaterial",
+];
+
+export const EXCLUDED_PUBLICATION_TYPES = [
+  "Editorial",
+  "Comment",
+  "Letter",
+  "News",
+  "Correction",
+  "Erratum",
+  "Case Reports",
+  "Congress",
+  "Conference Abstract",
+  "Study Protocol",
 ] as const;
 
 export const GUIDELINE_ORGANIZATIONS = [

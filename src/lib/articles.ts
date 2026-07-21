@@ -2,7 +2,7 @@ import type { Prisma, Specialty, StudyType } from "@prisma/client";
 import { prisma } from "./db";
 import { cacheGet, cacheSet } from "./redis";
 import { getBeijingDateKey } from "./beijing-time";
-import { CACHE_KEYS, CACHE_TTL, todayPicksCacheKey } from "./constants";
+import { CACHE_KEYS, CACHE_TTL, PIPELINE_STATUS, todayPicksCacheKey } from "./constants";
 import { getTodayPicks } from "./pipeline/daily-fetch";
 import type { ArticleCardDTO } from "./types";
 
@@ -82,7 +82,10 @@ export async function searchArticles(params: SearchParams) {
   const limit = Math.min(params.limit ?? 20, 50);
   const skip = (page - 1) * limit;
 
-  const where: Prisma.ArticleWhereInput = { verificationStatus: "VERIFIED" };
+  const where: Prisma.ArticleWhereInput = {
+    verificationStatus: "VERIFIED",
+    pipelineStatus: PIPELINE_STATUS.PUBLISHED,
+  };
 
   if (params.specialty) where.specialty = params.specialty;
   if (params.studyType) where.studyType = params.studyType;
@@ -134,7 +137,7 @@ export async function getRelatedArticles(
   limit = 5
 ) {
   return prisma.article.findMany({
-    where: { specialty, id: { not: id }, verificationStatus: "VERIFIED" },
+    where: { specialty, id: { not: id }, verificationStatus: "VERIFIED", pipelineStatus: PIPELINE_STATUS.PUBLISHED },
     orderBy: { impactFactor: "desc" },
     take: limit,
   });

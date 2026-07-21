@@ -1,6 +1,7 @@
 import type { Prisma, Specialty, StudyType } from "@prisma/client";
 import { prisma } from "./db";
 import { toCardDTO } from "./articles";
+import { PIPELINE_STATUS } from "./constants";
 import type { ArticleCardDTO } from "./types";
 
 export type LibraryType = "history" | "core";
@@ -30,6 +31,7 @@ export async function searchSpecialtyLibrary(params: LibrarySearchParams) {
   const where: Prisma.ArticleWhereInput = {
     specialty: params.specialty,
     verificationStatus: "VERIFIED",
+    pipelineStatus: PIPELINE_STATUS.PUBLISHED,
     ...(params.libraryType === "history"
       ? { isInHistory: true }
       : { isCoreLibrary: true }),
@@ -89,8 +91,12 @@ export async function searchSpecialtyLibrary(params: LibrarySearchParams) {
 
 export async function countLibraryArticles(specialty: Specialty) {
   const [history, core] = await Promise.all([
-    prisma.article.count({ where: { specialty, isInHistory: true, verificationStatus: "VERIFIED" } }),
-    prisma.article.count({ where: { specialty, isCoreLibrary: true, verificationStatus: "VERIFIED" } }),
+    prisma.article.count({
+      where: { specialty, isInHistory: true, verificationStatus: "VERIFIED", pipelineStatus: PIPELINE_STATUS.PUBLISHED },
+    }),
+    prisma.article.count({
+      where: { specialty, isCoreLibrary: true, verificationStatus: "VERIFIED", pipelineStatus: PIPELINE_STATUS.PUBLISHED },
+    }),
   ]);
   return { history, core };
 }

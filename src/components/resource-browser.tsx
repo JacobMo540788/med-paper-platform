@@ -16,6 +16,14 @@ interface Facets {
   liuBenRoles: string[];
 }
 
+const EMPTY_FACETS: Facets = {
+  diseaseAreas: [],
+  years: [],
+  venues: [],
+  studyTypes: [],
+  liuBenRoles: [],
+};
+
 const SORT_OPTIONS = [
   { value: "date_desc", label: "时间：最新优先" },
   { value: "date_asc", label: "时间：最早优先" },
@@ -44,16 +52,12 @@ export function ResourceBrowser({
   const pathname = usePathname();
   const router = useRouter();
   const [items, setItems] = useState<ArticleCardDTO[]>([]);
-  const [facets, setFacets] = useState<Facets>({
-    diseaseAreas: [],
-    years: [],
-    venues: [],
-    studyTypes: [],
-    liuBenRoles: [],
-  });
+  const [facets, setFacets] = useState<Facets>(EMPTY_FACETS);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(Number(searchParams.get("page") ?? "1"));
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadedOnce, setLoadedOnce] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const state = useMemo(
@@ -64,7 +68,9 @@ export function ResourceBrowser({
       year: readCsv(searchParams, "year"),
       venue: readCsv(searchParams, "venue"),
       studyType: searchParams.get("studyType") ?? "",
-      minJif: searchParams.get("minJif") ?? (resourceKind === RESOURCE_KIND.GUIDELINE ? "" : "10"),
+      minJif:
+        searchParams.get("minJif") ??
+        (resourceKind === RESOURCE_KIND.GUIDELINE || resourceKind === RESOURCE_KIND.LIU_BEN_LAB ? "" : "10"),
       liuBenRole: searchParams.get("liuBenRole") ?? "",
       sort: searchParams.get("sort") ?? "date_desc",
       includeAllYears: searchParams.get("includeAllYears") === "1",
@@ -90,22 +96,30 @@ export function ResourceBrowser({
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams(searchParams.toString());
-    if (!params.get("resourceKind") && resourceKind !== "ALL") params.set("resourceKind", resourceKind);
-    const res = await fetch(`/api/resources?${params.toString()}`);
-    const json = await res.json();
-    setItems(json.items ?? []);
-    setFacets(json.facets ?? facets);
-    setTotal(json.total ?? 0);
-    setPage(json.page ?? 1);
-    setLoading(false);
-  }, [facets, resourceKind, searchParams]);
+    setError(null);
+    try {
+      const params = new URLSearchParams(searchParams.toString());
+      if (!params.get("resourceKind") && resourceKind !== "ALL") params.set("resourceKind", resourceKind);
+      const res = await fetch(`/api/resources?${params.toString()}`);
+      const json = await res.json();
+      if (!res.ok || json.success === false) throw new Error(json.error ?? "资源列表加载失败");
+      setItems(json.items ?? []);
+      setFacets(json.facets ?? EMPTY_FACETS);
+      setTotal(json.total ?? 0);
+      setPage(json.page ?? 1);
+      setLoadedOnce(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [resourceKind, searchParams]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const showJifFilter = state.kind !== RESOURCE_KIND.GUIDELINE;
+  const showJifFilter = state.kind !== RESOURCE_KIND.GUIDELINE && state.kind !== RESOURCE_KIND.LIU_BEN_LAB;
 
   return (
     <div>
@@ -120,7 +134,9 @@ export function ResourceBrowser({
         </Button>
       </div>
 
-      <div className={`mt-6 rounded-lg border p-4 ${filtersOpen ? "grid" : "hidden"} gap-3 md:grid md:grid-cols-2 lg:grid-cols-4`}>
+      <div
+        className={`mt-6 rounded-lg border p-4 ${filtersOpen ? "grid" : "hidden"} gap-3 md:grid md:grid-cols-2 lg:grid-cols-4`}
+      >
         <input
           className="rounded-md border bg-background px-3 py-2 text-sm md:col-span-2"
           placeholder="关键词、标题、DOI、PMID、机构或期刊"
@@ -201,7 +217,7 @@ export function ResourceBrowser({
             placeholder="最低 JIF"
             defaultValue={state.minJif}
             onBlur={(e) => updateUrl({ minJif: e.target.value })}
-            aria-label="最低JIF"
+            aria-label="最低 JIF"
           />
         )}
         {state.kind === RESOURCE_KIND.LIU_BEN_LAB && (
@@ -244,13 +260,26 @@ export function ResourceBrowser({
       </div>
 
       <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-        <span>共 {total} 条结果</span>
-        {loading && <span>加载中...</span>}
+        <span>{loadedOnce ? `共 ${total} 条结果` : "正在加载真实文献记录..."}</span>
+        {loading && loadedOnce && <span>正在更新...</span>}
       </div>
 
-      {items.length === 0 && !loading ? (
+      {error ? (
+        <div className="mt-6 rounded-lg border border-destructive/40 p-8 text-center">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button className="mt-4" variant="outline" onClick={() => void load()}>
+            重试
+          </Button>
+        </div>
+      ) : loading && !loadedOnce ? (
+        <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-64 animate-pulse rounded-lg border bg-muted/30" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <div className="mt-6 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-          暂无符合条件的真实记录。请放宽筛选条件，或等待下一次数据更新。
+          暂无符合条件且已通过真实性校验的记录。请放宽筛选条件，或等待下一次数据更新。
         </div>
       ) : (
         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -261,16 +290,12 @@ export function ResourceBrowser({
       )}
 
       <div className="mt-8 flex justify-center gap-3">
-        <Button
-          variant="outline"
-          disabled={page <= 1}
-          onClick={() => updateUrl({ page: page - 1 })}
-        >
+        <Button variant="outline" disabled={page <= 1 || loading} onClick={() => updateUrl({ page: page - 1 })}>
           上一页
         </Button>
         <Button
           variant="outline"
-          disabled={items.length === 0 || page * 20 >= total}
+          disabled={items.length === 0 || page * 20 >= total || loading}
           onClick={() => updateUrl({ page: page + 1 })}
         >
           下一页

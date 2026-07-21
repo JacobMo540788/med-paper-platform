@@ -1,13 +1,17 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/db";
-import { RESOURCE_NAV, UROLOGY_SPECIALTY } from "@/lib/constants";
+import { PIPELINE_STATUS, RESOURCE_NAV, UROLOGY_SPECIALTY } from "@/lib/constants";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const articles = await prisma.article
     .findMany({
-      where: { specialty: UROLOGY_SPECIALTY, verificationStatus: "VERIFIED" },
+      where: {
+        specialty: UROLOGY_SPECIALTY,
+        verificationStatus: "VERIFIED",
+        pipelineStatus: PIPELINE_STATUS.PUBLISHED,
+      },
       select: { id: true, updatedAt: true },
       orderBy: { updatedAt: "desc" },
       take: 500,

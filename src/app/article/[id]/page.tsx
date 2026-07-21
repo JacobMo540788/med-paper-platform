@@ -3,7 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { AiAnalysis } from "@/lib/types";
 import { getArticleById, getRelatedArticles, toCardDTO } from "@/lib/articles";
-import { RESOURCE_KIND_LABEL, SPECIALTY_CONFIG, STUDY_TYPE_LABEL, type ResourceKind } from "@/lib/constants";
+import {
+  PIPELINE_STATUS,
+  RESOURCE_KIND_LABEL,
+  SPECIALTY_CONFIG,
+  STUDY_TYPE_LABEL,
+  type ResourceKind,
+} from "@/lib/constants";
 import { PublicationDate } from "@/components/publication-date";
 import { AiAnalysisPanel } from "@/components/ai-analysis-panel";
 import { ArticleCard } from "@/components/article-card";
@@ -11,7 +17,6 @@ import { ArticleLiteratureLinks } from "@/components/article-literature-links";
 import { FavoriteButton } from "@/components/favorite-button";
 import { Badge } from "@/components/ui/badge";
 import { decodeHtmlEntities } from "@/lib/html";
-import { generateAiAnalysisForArticle } from "@/lib/pipeline/ai-analysis";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +25,18 @@ type Props = { params: Promise<{ id: string }> };
 function jifText(article: { impactFactor: number; jifStatus?: string | null; jifYear?: number | null }) {
   if (article.jifStatus === "NOT_APPLICABLE") return "IF 不适用";
   if (article.jifStatus === "PENDING") return "IF 待核验";
-  return `IF ${article.impactFactor.toFixed(1)}${article.jifYear ? `（${article.jifYear}）` : ""}`;
+  return `JIF ${article.impactFactor.toFixed(1)}${article.jifYear ? ` · ${article.jifYear}` : ""}`;
+}
+
+function isPublicArticle(article: Awaited<ReturnType<typeof getArticleById>>) {
+  return article?.verificationStatus === "VERIFIED" && article.pipelineStatus === PIPELINE_STATUS.PUBLISHED;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const article = await getArticleById(id);
-  if (!article) return { title: "文章未找到" };
-  if (article.verificationStatus !== "VERIFIED") return { title: "文献尚未通过真实性校验" };
+  if (!article) return { title: "文献未找到" };
+  if (!isPublicArticle(article)) return { title: "文献尚未通过公开发布审核" };
 
   return {
     title: article.titleCn ?? article.titleEn,
@@ -45,13 +54,13 @@ export default async function ArticlePage({ params }: Props) {
   const article = await getArticleById(id);
   if (!article) notFound();
 
-  if (article.verificationStatus !== "VERIFIED") {
+  if (!isPublicArticle(article)) {
     return (
       <article className="container mx-auto max-w-3xl px-4 py-16">
         <div className="rounded-lg border border-dashed p-8 text-center">
-          <h1 className="font-serif text-2xl font-bold">该文献尚未通过真实性校验，暂不展示。</h1>
+          <h1 className="font-serif text-2xl font-bold">该文献尚未通过公开发布审核</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            医学论文元数据必须通过 PubMed、CrossRef、机构官网或正式出版页面校验后才能公开展示。
+            医学文献必须完成来源、元数据、内容相关性和 JIF 等核验后才能公开展示。
           </p>
           <Link href="/" className="mt-6 inline-block text-sm text-primary hover:underline">
             返回首页
@@ -63,20 +72,10 @@ export default async function ArticlePage({ params }: Props) {
 
   const related = await getRelatedArticles(id, article.specialty);
   const spec = SPECIALTY_CONFIG[article.specialty];
-  const generatedAnalysis = await generateAiAnalysisForArticle(article).catch((error) => {
-    console.error(`[ai-analysis:on-demand] ${article.id} failed:`, error instanceof Error ? error.message : error);
-    return null;
-  });
-  const analysis = (generatedAnalysis?.aiAnalysisJson ?? article.aiAnalysisJson) as AiAnalysis | null;
-  const keywordsBilingual = (generatedAnalysis?.keywordsBilingual ?? article.keywordsBilingual) as
-    | { en: string; cn: string }[]
-    | null;
-  const titleCn = generatedAnalysis?.titleCn ?? article.titleCn;
-  const abstractCn = generatedAnalysis?.abstractCn ?? article.abstractCn;
+  const analysis = article.aiAnalysisJson as AiAnalysis | null;
+  const keywordsBilingual = article.keywordsBilingual as { en: string; cn: string }[] | null;
   const abstractEn = article.abstract ? decodeHtmlEntities(article.abstract) : null;
-  const resourceLabel = article.resourceKind
-    ? RESOURCE_KIND_LABEL[article.resourceKind as ResourceKind]
-    : null;
+  const resourceLabel = article.resourceKind ? RESOURCE_KIND_LABEL[article.resourceKind as ResourceKind] : null;
 
   return (
     <article className="container mx-auto max-w-4xl px-4 py-10">
@@ -94,7 +93,7 @@ export default async function ArticlePage({ params }: Props) {
       </div>
 
       <h1 className="font-serif text-3xl font-bold leading-tight md:text-4xl">{article.titleEn}</h1>
-      {titleCn && <p className="mt-3 text-xl text-muted-foreground">{titleCn}</p>}
+      {article.titleCn && <p className="mt-3 text-xl text-muted-foreground">{article.titleCn}</p>}
 
       <ArticleLiteratureLinks article={article} />
 
@@ -102,8 +101,8 @@ export default async function ArticlePage({ params }: Props) {
         <h2 className="font-serif text-lg font-semibold">真实性与来源核验</h2>
         <dl className="mt-3 grid gap-2 sm:grid-cols-2">
           <div>
-            <dt className="font-medium text-foreground">校验状态</dt>
-            <dd className="text-muted-foreground">已通过</dd>
+            <dt className="font-medium text-foreground">流水线状态</dt>
+            <dd className="text-muted-foreground">{article.pipelineStatus}</dd>
           </div>
           <div>
             <dt className="font-medium text-foreground">数据来源</dt>
@@ -118,8 +117,8 @@ export default async function ArticlePage({ params }: Props) {
           </div>
           {article.dataVerifiedAt && (
             <div>
-              <dt className="font-medium text-foreground">数据最后核验日期</dt>
-              <dd className="text-muted-foreground">{article.dataVerifiedAt.toISOString()}</dd>
+              <dt className="font-medium text-foreground">最后核验日期</dt>
+              <dd className="text-muted-foreground">{article.dataVerifiedAt.toISOString().slice(0, 10)}</dd>
             </div>
           )}
           {article.pmid && (
@@ -131,7 +130,7 @@ export default async function ArticlePage({ params }: Props) {
           {article.doi && (
             <div>
               <dt className="font-medium text-foreground">DOI</dt>
-              <dd className="text-muted-foreground">{article.doi}</dd>
+              <dd className="break-all text-muted-foreground">{article.doi}</dd>
             </div>
           )}
           {(article.officialUrl ?? article.sourceUrl) && (
@@ -252,10 +251,10 @@ export default async function ArticlePage({ params }: Props) {
         </section>
       )}
 
-      {abstractCn && (
+      {article.abstractCn && (
         <section className="mt-10">
           <h2 className="mb-3 font-serif text-xl font-semibold">摘要（中文）</h2>
-          <p className="leading-relaxed text-foreground/90">{abstractCn}</p>
+          <p className="leading-relaxed text-foreground/90">{article.abstractCn}</p>
         </section>
       )}
 
@@ -268,6 +267,9 @@ export default async function ArticlePage({ params }: Props) {
 
       {analysis ? (
         <div className="mt-12 border-t pt-10">
+          <p className="mb-3 text-xs text-muted-foreground">
+            AI辅助摘要：仅基于已核验来源文本生成，不作为引用来源。
+          </p>
           <AiAnalysisPanel analysis={analysis} />
         </div>
       ) : (

@@ -93,6 +93,18 @@ model Article {
   verificationStatus ArticleVerificationStatus @default(PENDING) @map("verification_status")
   verificationError  String?    @map("verification_error") @db.Text
   lastVerifiedAt     DateTime?  @map("last_verified_at")
+  pipelineStatus     String     @default("DISCOVERED") @map("pipeline_status")
+  rawSource          String?    @map("raw_source")
+  rawSourceUrl       String?    @map("raw_source_url")
+  sourceRecordId     String?    @map("source_record_id")
+  fetchedAt          DateTime?  @map("fetched_at")
+  rawMetadataHash    String?    @map("raw_metadata_hash")
+  validationTrail    Json?      @map("validation_trail")
+  exclusionReasons   String[]   @default([]) @map("exclusion_reasons")
+  aiModel            String?    @map("ai_model")
+  aiPromptVersion    String?    @map("ai_prompt_version")
+  contentReviewedAt  DateTime?  @map("content_reviewed_at")
+  publishedAt        DateTime?  @map("published_at")
   externalUrl     String?       @map("external_url")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
@@ -115,6 +127,8 @@ model Article {
   @@index([isCoreLibrary, specialty])
   @@index([studyType])
   @@index([verificationStatus])
+  @@index([pipelineStatus])
+  @@index([sourceProvider, sourceRecordId])
   @@map("articles")
 }
 
@@ -189,11 +203,69 @@ model FetchLog {
 model JournalIf {
   id            String  @id @default(cuid())
   journalName   String  @unique @map("journal_name")
+  normalizedName String? @map("normalized_name")
   issn          String?
+  eIssn         String? @map("e_issn")
+  aliases       String[] @default([])
   impactFactor  Float   @map("impact_factor")
+  jifYear       Int?    @map("jif_year")
+  source        String?
+  verifiedAt    DateTime? @map("verified_at")
   tier          Int     @default(1)
   isTopJournal  Boolean @default(false) @map("is_top_journal")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  @@index([normalizedName])
+  @@index([issn])
+  @@index([eIssn])
   @@map("journal_ifs")
+}
+
+model HarvestRun {
+  id                    String   @id @default(cuid())
+  runKey                String   @unique @map("run_key")
+  mode                  String
+  status                String
+  startedAt             DateTime @default(now()) @map("started_at")
+  endedAt               DateTime? @map("ended_at")
+  fromDate              DateTime? @map("from_date")
+  toDate                DateTime? @map("to_date")
+  totalHits             Int      @default(0) @map("total_hits")
+  discovered            Int      @default(0)
+  dedupedCandidates     Int      @default(0) @map("deduped_candidates")
+  metadataVerified      Int      @default(0) @map("metadata_verified")
+  contentReviewed       Int      @default(0) @map("content_reviewed")
+  jifVerified           Int      @default(0) @map("jif_verified")
+  published             Int      @default(0)
+  manualReview          Int      @default(0) @map("manual_review")
+  rejected              Int      @default(0)
+  sourceErrors          Int      @default(0) @map("source_errors")
+  report                Json?
+  errors                String?  @db.Text
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@index([mode, status])
+  @@index([startedAt])
+  @@map("harvest_runs")
+}
+
+model HarvestCheckpoint {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  value           String
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("harvest_checkpoints")
+}
+
+model JobLock {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  owner        String
+  lockedUntil  DateTime @map("locked_until")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("job_locks")
 }
