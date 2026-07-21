@@ -117,7 +117,55 @@
     "journalName": "Journal of Clinical Oncology",
     "issn": "0732-183X",
     "impactFactor": 45.3,
-    "isTopJournal": false
+    "isTopJournal": false,
+    "jifYear": 2024,
+    "source": "local manual JIF whitelist",
+    "verifiedAt": "2026-07-21"
+  },
+  {
+    "journalName": "JAMA Oncology",
+    "issn": "2374-2437",
+    "impactFactor": 20.1,
+    "isTopJournal": true,
+    "jifYear": 2025,
+    "source": "JAMA Oncology The Year in Review, 2025",
+    "verifiedAt": "2026-07-21"
+  },
+  {
+    "journalName": "Clinical Cancer Research",
+    "issn": "1078-0432",
+    "impactFactor": 10.9,
+    "isTopJournal": true,
+    "jifYear": 2025,
+    "source": "AACR Journals Metrics, JCR from Clarivate 2026",
+    "verifiedAt": "2026-07-21"
+  },
+  {
+    "journalName": "Clinical cancer research : an official journal of the American Association for Cancer Research",
+    "issn": "1078-0432",
+    "impactFactor": 10.9,
+    "isTopJournal": true,
+    "jifYear": 2025,
+    "source": "AACR Journals Metrics, JCR from Clarivate 2026",
+    "verifiedAt": "2026-07-21"
+  },
+  {
+    "journalName": "Cancer Research",
+    "issn": "0008-5472",
+    "impactFactor": 22.6,
+    "isTopJournal": true,
+    "jifYear": 2025,
+    "source": "AACR Journals Metrics, JCR from Clarivate 2026",
+    "verifiedAt": "2026-07-21"
+  },
+  {
+    "journalName": "Cancer Discovery",
+    "issn": "2159-8274",
+    "impactFactor": 29.5,
+    "isTopJournal": true,
+    "jifYear": 2025,
+    "source": "AACR Journals Metrics, JCR from Clarivate 2026",
+    "verifiedAt": "2026-07-21"
   },
   {
     "journalName": "Annals of Oncology",
@@ -394,6 +442,26 @@
     "issn": "1759-5061",
     "impactFactor": 39.8,
     "isTopJournal": true
+  },
+  {
+    "journalName": "Nature reviews. Urology",
+    "issn": "1759-4812",
+    "eIssn": "1759-4820",
+    "impactFactor": 13.6,
+    "isTopJournal": true,
+    "jifYear": 2025,
+    "source": "Nature Reviews Urology Journal Metrics",
+    "verifiedAt": "2026-07-21"
+  },
+  {
+    "journalName": "Nature Reviews Urology",
+    "issn": "1759-4812",
+    "eIssn": "1759-4820",
+    "impactFactor": 13.6,
+    "isTopJournal": true,
+    "jifYear": 2025,
+    "source": "Nature Reviews Urology Journal Metrics",
+    "verifiedAt": "2026-07-21"
   },
   {
     "journalName": "Nature Reviews Nephrology",

@@ -22,6 +22,7 @@
     "revalidate:articles": "tsx scripts/revalidate-existing-articles.ts",
     "import:core-reviews": "tsx scripts/import-core-reviews.ts",
     "import:urology-resources": "tsx scripts/import-urology-resources.ts",
+    "import:high-impact-urology": "tsx scripts/import-high-impact-urology.ts",
     "import:liu-ben-lab": "tsx scripts/import-liu-ben-lab.ts",
     "generate:ai-analysis": "tsx scripts/generate-ai-analysis.ts",
     "repair:impact-factors": "tsx scripts/repair-impact-factors.ts",
