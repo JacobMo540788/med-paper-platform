@@ -24,6 +24,7 @@
     "import:urology-resources": "tsx scripts/import-urology-resources.ts",
     "generate:ai-analysis": "tsx scripts/generate-ai-analysis.ts",
     "repair:impact-factors": "tsx scripts/repair-impact-factors.ts",
+    "repair:urology-disease-areas": "tsx scripts/repair-urology-disease-areas.ts",
     "test:verification": "tsx scripts/verification-smoke-test.ts",
     "test:urology": "tsx scripts/test-urology-specialization.ts",
     "worker": "tsx src/jobs/worker.ts"
