@@ -1,135 +1,215 @@
 import { PrismaClient } from "@prisma/client";
 import { classifyStudyType } from "../src/lib/classifier";
 import {
+  BASIC_STUDY_TERMS,
+  CLINICAL_STUDY_TERMS,
+  PIPELINE_STATUS,
   RESOURCE_KIND,
-  RESEARCH_MIN_JIF,
   ROLLING_WINDOW_YEARS,
+  UROLOGY_QUERY_GROUPS,
   UROLOGY_SPECIALTY,
   type ResourceKind,
 } from "../src/lib/constants";
-import { fetchPubMedSearch } from "../src/lib/fetchers/pubmed";
-import { resolveImpactFactor } from "../src/lib/journal-if";
+import { fetchPubMedPaged } from "../src/lib/fetchers/pubmed";
+import { resolveJournalImpactFactor } from "../src/lib/journal-if";
 import { upsertArticleRecord } from "../src/lib/pipeline/article-upsert";
+import type { RawPaper } from "../src/lib/types";
 
 const prisma = new PrismaClient();
 const pageSize = Number(process.argv.find((arg) => arg.startsWith("--page-size="))?.split("=")[1] ?? "80");
-const pages = Number(process.argv.find((arg) => arg.startsWith("--pages="))?.split("=")[1] ?? "2");
+const maxRecords = Number(process.argv.find((arg) => arg.startsWith("--max-records="))?.split("=")[1] ?? "160");
+const years = Number(process.argv.find((arg) => arg.startsWith("--years="))?.split("=")[1] ?? ROLLING_WINDOW_YEARS);
+const runLlm = !process.argv.includes("--no-llm");
 
-const startYear = new Date().getFullYear() - ROLLING_WINDOW_YEARS;
-const dateFilter = `("${startYear}/01/01"[PDAT] : "3000"[PDAT])`;
-const urologyFilter =
-  "(urology[Title/Abstract] OR urologic[Title/Abstract] OR urological[Title/Abstract] OR prostate[Title/Abstract] OR bladder[Title/Abstract] OR renal cell carcinoma[Title/Abstract] OR upper tract urothelial[Title/Abstract] OR testicular[Title/Abstract] OR penile[Title/Abstract] OR urolithiasis[Title/Abstract] OR urinary tract infection[Title/Abstract] OR urinary incontinence[Title/Abstract] OR neuro-urology[Title/Abstract] OR erectile dysfunction[Title/Abstract] OR male infertility[Title/Abstract])";
-const excludeFilter =
-  "NOT (Editorial[Publication Type] OR Letter[Publication Type] OR News[Publication Type] OR Comment[Publication Type] OR Erratum[Publication Type] OR Case Reports[Publication Type] OR Congress[Publication Type])";
+type Candidate = RawPaper & { resourceKind: ResourceKind; diseaseArea: string };
 
-const QUERIES: { kind: ResourceKind; label: string; term: string }[] = [
-  {
-    kind: RESOURCE_KIND.GUIDELINE,
-    label: "guidelines",
-    term: `${urologyFilter} AND ${dateFilter} AND (Guideline[Publication Type] OR Practice Guideline[Publication Type] OR consensus[Title/Abstract] OR guideline[Title]) AND english[Language]`,
-  },
-  {
-    kind: RESOURCE_KIND.CLINICAL_RESEARCH,
-    label: "clinical",
-    term: `${urologyFilter} AND ${dateFilter} AND ${excludeFilter} AND (Randomized Controlled Trial[Publication Type] OR Clinical Trial[Publication Type] OR Meta-Analysis[Publication Type] OR systematic review[Title/Abstract] OR cohort[Title/Abstract] OR real-world[Title/Abstract] OR phase III[Title/Abstract]) AND english[Language]`,
-  },
-  {
-    kind: RESOURCE_KIND.BASIC_RESEARCH,
-    label: "basic",
-    term: `${urologyFilter} AND ${dateFilter} AND ${excludeFilter} AND (molecular[Title/Abstract] OR mechanism[Title/Abstract] OR tumor microenvironment[Title/Abstract] OR transcriptomic[Title/Abstract] OR single-cell[Title/Abstract] OR proteomic[Title/Abstract] OR metabolomic[Title/Abstract] OR mouse[Title/Abstract] OR mice[Title/Abstract] OR organoid[Title/Abstract] OR cell line[Title/Abstract]) AND english[Language]`,
-  },
-];
+function dateWindow() {
+  const to = new Date();
+  const from = new Date(to);
+  from.setFullYear(from.getFullYear() - years);
+  return {
+    from,
+    to,
+    filter: `("${from.toISOString().slice(0, 10).replaceAll("-", "/")}"[PDAT] : "${to
+      .toISOString()
+      .slice(0, 10)
+      .replaceAll("-", "/")}"[PDAT])`,
+  };
+}
 
-function unique<T extends { doi?: string; pmid?: string; titleEn: string }>(items: T[]) {
+function fieldTerms(terms: string[]) {
+  return terms.map((term) => `"${term}"[Title/Abstract]`).join(" OR ");
+}
+
+function diseaseTerms(group: (typeof UROLOGY_QUERY_GROUPS)[number]) {
+  return [
+    ...group.mesh.map((m) => `"${m}"[MeSH Terms]`),
+    ...group.keywords.map((k) => `"${k}"[Title/Abstract]`),
+    ...(group.abbreviations ?? []).map((k) => `"${k}"[Title/Abstract]`),
+  ].join(" OR ");
+}
+
+function buildQueries() {
+  const { filter } = dateWindow();
+  const exclude =
+    "NOT (Editorial[Publication Type] OR Letter[Publication Type] OR News[Publication Type] OR Comment[Publication Type] OR Erratum[Publication Type] OR Case Reports[Publication Type] OR Congress[Publication Type])";
+  return UROLOGY_QUERY_GROUPS.flatMap((group) => {
+    const disease = diseaseTerms(group);
+    return [
+      {
+        kind: RESOURCE_KIND.GUIDELINE,
+        diseaseArea: group.diseaseArea,
+        label: `${group.id}:guideline`,
+        term: `(${disease}) AND ${filter} AND (Guideline[Publication Type] OR Practice Guideline[Publication Type] OR consensus[Title/Abstract] OR guideline[Title]) AND english[Language]`,
+      },
+      {
+        kind: RESOURCE_KIND.CLINICAL_RESEARCH,
+        diseaseArea: group.diseaseArea,
+        label: `${group.id}:clinical`,
+        term: `(${disease}) AND ${filter} AND ${exclude} AND (${fieldTerms(CLINICAL_STUDY_TERMS)}) AND english[Language]`,
+      },
+      {
+        kind: RESOURCE_KIND.BASIC_RESEARCH,
+        diseaseArea: group.diseaseArea,
+        label: `${group.id}:basic`,
+        term: `(${disease}) AND ${filter} AND ${exclude} AND (${fieldTerms([
+          ...BASIC_STUDY_TERMS,
+          ...(group.basicKeywords ?? []),
+        ])}) AND english[Language]`,
+      },
+    ];
+  });
+}
+
+function unique(items: Candidate[]) {
   return Array.from(
-    new Map(items.map((paper) => [paper.doi?.toLowerCase() ?? paper.pmid ?? paper.titleEn.toLowerCase(), paper])).values()
+    new Map(
+      items.map((paper) => [
+        paper.doi?.toLowerCase() ??
+          paper.pmid ??
+          `${paper.titleEn.toLowerCase().replace(/\s+/g, " ")}:${paper.authors[0] ?? ""}:${paper.publishDate.getFullYear()}`,
+        paper,
+      ])
+    ).values()
   );
 }
 
-async function importKind(kind: ResourceKind, label: string, term: string) {
-  console.log(`\n[urology:${label}] fetching candidates...`);
-  const candidates = [];
-  for (let page = 0; page < pages; page++) {
-    const retStart = page * pageSize;
-    const rows = await fetchPubMedSearch(term, UROLOGY_SPECIALTY, pageSize, retStart, "relevance");
-    console.log(`[urology:${label}] page=${page + 1}/${pages}, candidates=${rows.length}`);
-    candidates.push(...rows);
-    if (rows.length < pageSize) break;
+async function importCandidates() {
+  const candidates: Candidate[] = [];
+  const queryReports = [];
+
+  for (const query of buildQueries()) {
+    console.log(`\n[urology:${query.label}] fetching candidates...`);
+    const result = await fetchPubMedPaged(query.term, UROLOGY_SPECIALTY, {
+      retMax: pageSize,
+      maxRecords,
+      sort: "relevance",
+    });
+    queryReports.push({
+      label: query.label,
+      totalHits: result.totalHits,
+      requested: result.requested,
+    });
+    candidates.push(
+      ...result.papers.map((paper) => ({
+        ...paper,
+        resourceKind: query.kind,
+        diseaseArea: query.diseaseArea,
+      }))
+    );
+    console.log(`[urology:${query.label}] hits=${result.totalHits}, requested=${result.requested}`);
   }
 
-  let accepted = 0;
+  const deduped = unique(candidates).filter((p) => p.doi || p.pmid);
+  let published = 0;
+  let manualReview = 0;
   let rejected = 0;
-  let belowJif = 0;
+  let sourceErrors = 0;
   const pendingJif = new Set<string>();
 
-  for (const paper of unique(candidates).filter((p) => p.doi || p.pmid)) {
-    const impactFactor = await resolveImpactFactor(paper.journal);
-    const isGuideline = kind === RESOURCE_KIND.GUIDELINE;
-    if (!isGuideline && impactFactor < RESEARCH_MIN_JIF) {
-      if (impactFactor <= 0) pendingJif.add(paper.journal);
-      belowJif++;
-      continue;
-    }
+  for (const paper of deduped) {
+    const isGuideline = paper.resourceKind === RESOURCE_KIND.GUIDELINE;
+    const jif = isGuideline
+      ? { impactFactor: 0, status: "NOT_APPLICABLE" as const, jifYear: null, source: null }
+      : await resolveJournalImpactFactor(paper.journal);
+    if (jif.status !== "VERIFIED" && !isGuideline) pendingJif.add(paper.journal);
 
     const studyType =
-      kind === RESOURCE_KIND.BASIC_RESEARCH
+      paper.resourceKind === RESOURCE_KIND.BASIC_RESEARCH
         ? "BASIC"
         : classifyStudyType({
             ...paper,
-            articleType: kind === RESOURCE_KIND.GUIDELINE ? `${paper.articleType ?? ""}; Guideline` : paper.articleType,
+            articleType: isGuideline ? `${paper.articleType ?? ""}; Guideline` : paper.articleType,
           });
 
     const id = await upsertArticleRecord(
       {
         ...paper,
-        articleType: kind === RESOURCE_KIND.GUIDELINE ? `${paper.articleType ?? ""}; Guideline` : paper.articleType,
+        articleType: isGuideline ? `${paper.articleType ?? ""}; Guideline` : paper.articleType,
       },
-      isGuideline && impactFactor <= 0 ? 0 : impactFactor,
+      jif.impactFactor ?? 0,
       studyType,
       {
         asHistory: true,
-        asCoreLibrary: !isGuideline,
-        resourceKind: kind,
-        runLlm: true,
-        jifStatus: isGuideline && impactFactor <= 0 ? "NOT_APPLICABLE" : "VERIFIED",
-        jifYear: isGuideline && impactFactor <= 0 ? null : 2024,
-        jifSource: isGuideline && impactFactor <= 0 ? null : "local JCR whitelist",
-        guidelineType: isGuideline ? "正式指南/共识或指南更新" : null,
+        asCoreLibrary: !isGuideline && jif.status === "VERIFIED" && (jif.impactFactor ?? 0) >= 10,
+        resourceKind: paper.resourceKind,
+        diseaseArea: paper.diseaseArea,
+        runLlm,
+        jifStatus: jif.status,
+        jifYear: jif.jifYear ?? null,
+        jifSource: jif.source ?? null,
+        guidelineType: isGuideline ? "正式指南/共识/指南更新" : null,
         versionYear: isGuideline ? paper.publishDate.getFullYear() : null,
+        sourceRecordId: paper.pmid ?? paper.doi ?? null,
+        rawMetadata: {
+          provider: paper.sourceProvider ?? "pubmed",
+          pmid: paper.pmid,
+          doi: paper.doi,
+          titleEn: paper.titleEn,
+          journal: paper.journal,
+          articleType: paper.articleType,
+          diseaseArea: paper.diseaseArea,
+          resourceKind: paper.resourceKind,
+          jif,
+        },
         inclusionEvidence: isGuideline
           ? "PubMed guideline/practice guideline/consensus query with DOI or PMID verification."
-          : "PubMed urology query with DOI or PMID verification and JIF threshold screening.",
+          : "PubMed urology query with DOI or PMID verification; JIF gates decide publication eligibility.",
       }
     );
 
-    if (id) accepted++;
-    else rejected++;
+    if (!id) {
+      sourceErrors++;
+      continue;
+    }
+    const saved = await prisma.article.findUnique({ where: { id }, select: { pipelineStatus: true } });
+    if (saved?.pipelineStatus === PIPELINE_STATUS.PUBLISHED) published++;
+    else if (saved?.pipelineStatus === PIPELINE_STATUS.REJECTED) rejected++;
+    else manualReview++;
   }
 
-  console.log(
-    `[urology:${label}] fetched=${candidates.length}, accepted=${accepted}, rejected=${rejected}, belowOrPendingJif=${belowJif}`
-  );
-  if (pendingJif.size) {
-    console.log(`[urology:${label}] pending JIF journals:\n${[...pendingJif].sort().join("\n")}`);
-  }
-
-  return { fetched: candidates.length, accepted, rejected, belowJif, pendingJif: [...pendingJif].sort() };
+  return {
+    queryReports,
+    discovered: candidates.length,
+    deduped: deduped.length,
+    published,
+    manualReview,
+    rejected,
+    sourceErrors,
+    pendingJif: [...pendingJif].sort(),
+  };
 }
 
 async function main() {
-  const results = [];
-  for (const q of QUERIES) {
-    results.push(await importKind(q.kind, q.label, q.term));
-  }
-
+  const report = await importCandidates();
   const counts = await prisma.article.groupBy({
-    by: ["resourceKind"],
-    where: { specialty: UROLOGY_SPECIALTY, verificationStatus: "VERIFIED" },
+    by: ["resourceKind", "pipelineStatus"],
+    where: { specialty: UROLOGY_SPECIALTY },
     _count: { _all: true },
   });
 
   console.log("\n[urology] import done.");
-  console.log(JSON.stringify({ results, counts }, null, 2));
+  console.log(JSON.stringify({ report, counts }, null, 2));
 }
 
 main()
